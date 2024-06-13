@@ -2,6 +2,7 @@
 name = "mtracker"
 version = "0.2.0"
 edition = "2021"
+description = "cli movie tracker - keep track of watched movies and series"
 repository = "https://github.com/r-unruh/mtracker"
 authors = ["Rudolf Unruh"]
 readme = "README.md"
