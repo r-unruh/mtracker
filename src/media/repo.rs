@@ -100,13 +100,10 @@ impl Repo {
     /// Write all items to file
     pub fn write(&self) -> Result<(), Box<dyn std::error::Error>> {
         let mut output = String::new();
-
-        //for entry in self.items.iter().map(|i| i.to_db_entry()) {
         for entry in self.items.iter().map(media::Media::to_db_entry) {
             output += &entry;
             output += "\n\n";
         }
-
         Ok(fs::write(&self.path, output.trim())?)
     }
 }
