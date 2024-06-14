@@ -35,7 +35,7 @@ pub fn run(repo: &mut media::repo::Repo) -> Result<(), Box<dyn std::error::Error
         Some(("rm", matches)) => remove::handle(repo, matches),
         Some(("rate", matches)) => rate::handle(repo, matches),
         Some(("unrate", matches)) => unrate::handle(repo, matches),
-        Some(("edit", _)) => edit::handle(repo),
+        Some(("edit", matches)) => edit::handle(repo, matches),
         _ => unreachable!(),
     }
 }
