@@ -54,12 +54,6 @@ impl Repo {
         self.items.push(item);
     }
 
-    pub fn remove(&mut self, item: &media::Media) {
-        if let Some(index) = self.items.iter().position(|m| m == item) {
-            self.items.swap_remove(index);
-        }
-    }
-
     pub fn remove_by_handle(
         &mut self,
         handle: &media::handle::Handle,
