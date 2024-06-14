@@ -1,8 +1,8 @@
 use clap::{ArgMatches, Command};
 
+use crate::arg_util;
 use crate::args;
 use crate::media::repo;
-use crate::parse_util;
 
 pub fn command() -> Command {
     Command::new("unrate")
@@ -17,7 +17,7 @@ pub fn handle(
     repo: &mut repo::Repo,
     matches: &ArgMatches,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let handle = parse_util::handle_from_matches(matches)?;
+    let handle = arg_util::handle_from_matches(matches)?.unwrap();
     let media = repo.get_or_create(&handle);
 
     media.rating = None;

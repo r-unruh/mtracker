@@ -1,11 +1,11 @@
 use clap::{crate_authors, crate_version, Command};
 
 mod add;
+mod arg_util;
 mod args;
 mod edit;
 mod list;
 pub mod media;
-mod parse_util;
 mod rate;
 mod remove;
 mod unrate;

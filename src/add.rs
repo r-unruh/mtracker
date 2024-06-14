@@ -1,8 +1,8 @@
 use clap::{ArgMatches, Command};
 
+use crate::arg_util;
 use crate::args;
 use crate::media::repo;
-use crate::parse_util;
 
 pub fn command() -> Command {
     Command::new("add")
@@ -18,8 +18,8 @@ pub fn handle(
     repo: &mut repo::Repo,
     matches: &ArgMatches,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let handle = parse_util::handle_from_matches(matches)?;
-    let tags = parse_util::tags_from_matches(matches);
+    let handle = arg_util::handle_from_matches(matches)?.unwrap();
+    let tags = arg_util::tags_from_matches(matches);
 
     // Report error when just adding an existing item
     let media = repo.get(&handle);

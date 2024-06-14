@@ -2,7 +2,7 @@ use crate::args;
 use crate::media;
 use clap::{ArgMatches, Command};
 
-use crate::parse_util;
+use crate::arg_util;
 
 pub fn command() -> Command {
     Command::new("ls")
@@ -15,7 +15,7 @@ pub fn command() -> Command {
 }
 
 pub fn handle(repo: &media::repo::Repo, matches: &ArgMatches) {
-    let tags = parse_util::tags_from_matches(matches);
+    let tags = arg_util::tags_from_matches(matches);
     let mut items = repo.get_all();
 
     let options = media::format::ListOptions {
