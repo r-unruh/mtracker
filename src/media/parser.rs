@@ -24,6 +24,21 @@ fn parse_last_seen(input: &str) -> Result<Option<chrono::NaiveDate>, Box<dyn std
     }
 }
 
+fn parse_tags(input: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    let tags: Vec<String> = parse_prop::<String>(("tags", input))?
+        .unwrap()
+        .split(",")
+        .map(str::trim)
+        .map(str::to_string)
+        .collect();
+
+    if tags.contains(&String::new()) {
+        Err("empty tag".into())
+    } else {
+        Ok(tags)
+    }
+}
+
 impl media::Media {
     #[allow(clippy::missing_panics_doc)]
     pub fn from_db_entry(mut lines: std::str::Lines) -> Result<Self, Box<dyn std::error::Error>> {
@@ -38,6 +53,10 @@ impl media::Media {
 
         // Subsequent lines are key:value pairs
         for line in lines {
+            if line.is_empty() {
+                return Err(format!("illegal empty line").into());
+            }
+
             let (key, value) = match line.split_once(':') {
                 Some((n, v)) => (n, v.trim()),
                 None => return Err(format!("delimiter missing: {line}").into()),
@@ -48,13 +67,7 @@ impl media::Media {
                 "year" => year = parse_prop::<u16>((key, value))?,
                 "rating" => rating = parse_prop::<u8>((key, value))?,
                 "note" => note = parse_prop::<String>((key, value))?.unwrap(),
-                "tags" => {
-                    tags = parse_prop::<String>((key, value))?
-                        .unwrap()
-                        .split(", ")
-                        .map(str::to_string)
-                        .collect();
-                }
+                "tags" => tags = parse_tags(value)?,
                 "last_seen" => last_seen = parse_last_seen(value)?,
                 _ => return Err(format!("unknown key: {key}").into()),
             };
@@ -101,7 +114,7 @@ mod tests {
         let lines = "Forrest Gump
 year:  1994
 rating:2
-tags: drama, romance
+tags: drama, romance,funny
 last_seen: 2020-12-31
 note:very long"
             .lines();
@@ -115,10 +128,12 @@ note:very long"
             media.last_seen,
             chrono::NaiveDate::from_ymd_opt(2020, 12, 31)
         );
-        assert_eq!(media.tags, vec!["drama", "romance"]);
+        assert_eq!(media.tags, vec!["drama", "romance", "funny"]);
 
         // Bad entry, but technically valid
-        let lines = "year: 2009".lines();
+        let lines = "year: 2009
+"
+        .lines();
         let media = media::Media::from_db_entry(lines).unwrap();
         assert_eq!(media.name, "year: 2009");
         assert_eq!(media.year, None);
@@ -130,6 +145,14 @@ note:very long"
 
     #[test]
     fn aborts_gracefully() {
+        // Illegal empty lines in between
+        let lines = "foobar
+
+year: 2009"
+            .lines();
+        let error = media::Media::from_db_entry(lines).unwrap_err();
+        assert!(error.to_string().starts_with("illegal empty line"));
+
         // Not a number
         let lines = "foobar
 year: invalid"
@@ -150,6 +173,13 @@ foo: bar"
             .lines();
         let error = media::Media::from_db_entry(lines).unwrap_err();
         assert!(error.to_string().starts_with("unknown key"));
+
+        // Empty tags
+        let lines = "foobar
+tags: a,"
+            .lines();
+        let error = media::Media::from_db_entry(lines).unwrap_err();
+        assert!(error.to_string().starts_with("empty tag"));
 
         // Prop without delimiter
         let lines = "foobar
