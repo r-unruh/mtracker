@@ -16,3 +16,9 @@ clap = { version = "4.5.4", features = ["derive", "cargo"] }
 colored = "2.1.0"
 dirs = "5.0.1"
 regex = "1.10.4"
+
+[profile.release]
+lto = true
+strip = true
+codegen-units = 1
+panic = "abort"
