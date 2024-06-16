@@ -12,6 +12,7 @@ pub fn command() -> Command {
         .arg(args::identifier())
         .arg(args::tag().help("tag(s) to add"))
         .arg(args::year())
+        .arg(args::note())
 }
 
 pub fn handle(
@@ -20,6 +21,7 @@ pub fn handle(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let handle = arg_util::handle_from_matches(matches)?.unwrap();
     let tags = arg_util::tags_from_matches(matches);
+    let note = matches.try_get_one::<String>("NOTE")?;
 
     // Report error when just adding an existing item
     let media = repo.get(&handle);
@@ -39,6 +41,19 @@ pub fn handle(
         } else {
             media.add_tag(tag);
             println!("Added tag to {handle}: {tag}");
+        }
+    }
+
+    // Add note
+    if note.is_some() {
+        if media.note.is_empty() {
+            media.note = note.unwrap().to_string();
+            println!("Added note to {handle}: {}", media.note);
+        } else {
+            return Err(format!(
+                "item already has a note. Run 'mtracker edit \"{handle}\"' to modify it."
+            )
+            .into());
         }
     }
 

@@ -24,6 +24,13 @@ pub fn tag() -> Arg {
         .long("tag")
 }
 
+pub fn note() -> Arg {
+    Arg::new("NOTE")
+        .required(false)
+        .short('n')
+        .long("note")
+}
+
 pub fn note_bool() -> Arg {
     Arg::new("NOTE")
         .required(false)
