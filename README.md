@@ -13,8 +13,63 @@ series.
   useful to you manually.
 
 
+## Installation
+If you have Rust installed, you can simply use cargo:
+```bash
+cargo install mtracker
+```
+
+Otherwise just download the latest
+[release](https://github.com/r-unruh/mtracker/releases) and put it somewhere
+within your PATH variable, e.g.: `/usr/local/bin`
+
+Don't forget to make the file executable:
+```bash
+sudo chmod +x /usr/local/bin/mtracker
+```
+
+More user-friendly install options will be added at some point.
+
+
+## Tutorial
+Let's assume your friend Max tells you about a fun horror movie. This is how
+you add it to your watchlist:
+```bash
+mtracker add "Pearl (2022)" --tag=watchlist --note="Recommended by Max"
+```
+
+After watching the movie you decide to rate it a 8/10:
+```bash
+mtracker rate "Pearl (2022)" 8
+```
+
+This command assumes that you have now watched the item and removes it from the
+watchlist automatically.
+
+You can rate movies you already know directly without having to add them first:
+```bash
+mtracker rate "Session 9 (2001)" 10
+mtracker rate "In Fabric (2018)" 4
+```
+
+Now lets see what we have so far by listing all items:
+```bash
+mtracker ls
+```
+
+Which returns this list, sorted by rating:
+```bash
+++++++++++ Session 9 (2001)
+++++++++-- Pearl (2022)
++++------- In Fabric (2018)
+```
+
+This should cover the basics. Type `mtracker help [subcommand]` to see all
+options.
+
+
 ## Database
-The database is just a plain text file that you may edit by hand. It looks like
+The database is just a plain text file that you can edit by hand. It looks like
 this:
 ```
 Forrest Gump
@@ -36,7 +91,8 @@ On Linux, the database file is automatically created and stored in:
 `~/.local/share/mtracker/db.txt`
 
 
-## Ratings
+## Features
+### Ratings
 You can rate movies on a scale of your choice. mtracker doesn't force a rating
 system. The highest rated item in your database determines the scale: If the
 highest rated movie is a 7, then all the ratings go from 0 to 7. Of course, you
@@ -52,7 +108,7 @@ Here are a few options:
   * 1 = Okayish
   * 0 = Dislike
 
-## Tags
+### Tags
 You can tag movies and filter by tags when listing them later. `watchlist` is a
 special tag that highlights items and puts them on top of everything else.
 
