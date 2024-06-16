@@ -81,8 +81,14 @@ impl Repo {
             }
         };
 
-        let blocks = file_content.split("\n\n");
+        // Get blocks of text separated by empty lines
+        let blocks: Vec<_> = file_content
+            .split("\n\n")
+            .filter(|b| !b.is_empty())
+            .map(str::trim)
+            .collect();
 
+        // Parse blocks of text into media items
         let mut items: Vec<media::Media> = vec![];
         for block in blocks {
             items.push(media::Media::from_db_entry(block.lines())?);
@@ -117,19 +123,50 @@ mod tests {
 year: 1994
 
 Alien
-year: 1979",
+year: 1979
+
+
+Aliens
+year: 1986
+
+
+
+Alien 3
+year: 1992
+
+
+
+
+The Terminator
+year: 1984
+",
         )
         .unwrap();
 
         let repo = Repo::load_or_create(&path).unwrap();
 
-        let a = repo.items.get(0).unwrap();
-        let b = repo.items.get(1).unwrap();
+        let media = repo.items.get(0).unwrap();
+        assert_eq!(media.name, "Forrest Gump");
+        assert_eq!(media.year, Some(1994));
 
-        assert_eq!(a.name, "Forrest Gump");
-        assert_eq!(a.year, Some(1994));
-        assert_eq!(b.name, "Alien");
-        assert_eq!(b.year, Some(1979));
+        let media = repo.items.get(1).unwrap();
+        assert_eq!(media.name, "Alien");
+        assert_eq!(media.year, Some(1979));
+
+        let media = repo.items.get(2).unwrap();
+        assert_eq!(media.name, "Aliens");
+        assert_eq!(media.year, Some(1986));
+
+        let media = repo.items.get(3).unwrap();
+        assert_eq!(media.name, "Alien 3");
+        assert_eq!(media.year, Some(1992));
+
+        let media = repo.items.get(4).unwrap();
+        assert_eq!(media.name, "The Terminator");
+        assert_eq!(media.year, Some(1984));
+
+        let media = repo.items.get(5);
+        assert_eq!(media, None);
 
         fs::remove_file(&path).ok();
     }
