@@ -3,20 +3,25 @@ extern crate dirs;
 
 use crate::media;
 
+const NOT_INITIALIZED: &str = "Repo not initialized";
+
 pub struct Repo {
     pub path: path::PathBuf,
     pub items: Vec<media::Media>,
+    initialized: bool,
 }
 
 impl Repo {
-    pub fn load_or_create(path: &path::PathBuf) -> Result<Self, Box<dyn std::error::Error>> {
-        Ok(Repo {
-            path: path.clone(),
-            items: Self::read(path)?,
-        })
+    pub fn new(path: &path::Path) -> Self {
+        Repo {
+            path: path.to_path_buf(),
+            items: vec![],
+            initialized: false,
+        }
     }
 
     pub fn get(&mut self, handle: &media::handle::Handle) -> Option<&mut media::Media> {
+        assert!(self.initialized, "{NOT_INITIALIZED}");
         self.items.iter_mut().find(|m| m.matches_handle(handle))
     }
 
@@ -33,6 +38,7 @@ impl Repo {
     }
 
     pub fn get_all(&self) -> Vec<&media::Media> {
+        assert!(self.initialized, "{NOT_INITIALIZED}");
         self.items.iter().collect()
     }
 
@@ -41,6 +47,7 @@ impl Repo {
         handle: &media::handle::Handle,
         f: impl FnOnce(&mut media::Media),
     ) -> Result<(), Box<dyn std::error::Error>> {
+        assert!(self.initialized, "{NOT_INITIALIZED}");
         match self.get(handle) {
             Some(item) => {
                 f(item);
@@ -51,6 +58,7 @@ impl Repo {
     }
 
     pub fn add(&mut self, item: media::Media) {
+        assert!(self.initialized, "{NOT_INITIALIZED}");
         self.items.push(item);
     }
 
@@ -58,6 +66,7 @@ impl Repo {
         &mut self,
         handle: &media::handle::Handle,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        assert!(self.initialized, "{NOT_INITIALIZED}");
         match self.items.iter().position(|m| m.matches_handle(handle)) {
             Some(index) => {
                 self.items.swap_remove(index);
@@ -68,16 +77,17 @@ impl Repo {
     }
 
     /// Read all items from file into memory
-    fn read(path: &path::PathBuf) -> Result<Vec<media::Media>, Box<dyn std::error::Error>> {
-        let file_content = match fs::read_to_string(path) {
+    pub fn read(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        self.initialized = true;
+        let file_content = match fs::read_to_string(&self.path) {
             Ok(c) => {
                 if c.is_empty() {
-                    return Ok(vec![]);
+                    return Ok(());
                 }
                 c
             }
             Err(_) => {
-                return Ok(vec![]);
+                return Ok(());
             }
         };
 
@@ -89,12 +99,11 @@ impl Repo {
             .collect();
 
         // Parse blocks of text into media items
-        let mut items: Vec<media::Media> = vec![];
         for block in blocks {
-            items.push(media::Media::from_db_entry(block)?);
+            self.items.push(media::Media::from_db_entry(block)?);
         }
 
-        Ok(items)
+        Ok(())
     }
 
     /// Write all items to file
@@ -143,7 +152,8 @@ year: 1984
         )
         .unwrap();
 
-        let repo = Repo::load_or_create(&path).unwrap();
+        let mut repo = Repo::new(&path);
+        repo.read().unwrap();
 
         let media = repo.items.get(0).unwrap();
         assert_eq!(media.name, "Forrest Gump");
@@ -177,7 +187,8 @@ year: 1984
         path.push("mtracker_test_writes.txt");
         fs::remove_file(&path).ok();
 
-        let mut repo = Repo::load_or_create(&path).unwrap();
+        let mut repo = Repo::new(&path);
+        repo.read().unwrap();
         repo.add(media::Media::new("Forrest Gump", Some(1994)));
         repo.add(media::Media::new("Alien", Some(1979)));
 

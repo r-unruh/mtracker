@@ -35,6 +35,9 @@ fn edit_db_entry(
     repo: &mut repo::Repo,
     handle: &handle::Handle,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    // Init repo
+    repo.read()?;
+
     // Find media
     let Some(item) = repo.get(handle) else {
         return Err(format!("item not found: {handle}").into());

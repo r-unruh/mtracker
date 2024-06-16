@@ -27,10 +27,7 @@ pub fn run(repo: &mut media::repo::Repo) -> Result<(), Box<dyn std::error::Error
         .get_matches();
 
     match matches.subcommand() {
-        Some(("ls", matches)) => {
-            list::handle(repo, matches);
-            Ok(())
-        }
+        Some(("ls", matches)) => list::handle(repo, matches),
         Some(("add", matches)) => add::handle(repo, matches),
         Some(("rm", matches)) => remove::handle(repo, matches),
         Some(("rate", matches)) => rate::handle(repo, matches),

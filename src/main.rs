@@ -14,13 +14,8 @@ fn main() {
         }
     };
 
-    // Init repo
-    let mut repo = match repo::Repo::load_or_create(&db_file_path) {
-        Ok(r) => r,
-        Err(e) => {
-            return exit_with_error(&e);
-        }
-    };
+    // Init media repo
+    let mut repo = repo::Repo::new(&db_file_path);
 
     // Run program
     if let Err(e) = mtracker::run(&mut repo) {

@@ -14,8 +14,16 @@ pub fn command() -> Command {
         .arg(args::tags_bool().help("whether to display tags"))
 }
 
-pub fn handle(repo: &media::repo::Repo, matches: &ArgMatches) {
+pub fn handle(
+    repo: &mut media::repo::Repo,
+    matches: &ArgMatches,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // Get args
     let tags = arg_util::tags_from_matches(matches);
+
+    // Init repo
+    repo.read()?;
+
     let mut items = repo.get_all();
 
     let options = media::format::ListOptions {
@@ -42,6 +50,8 @@ pub fn handle(repo: &media::repo::Repo, matches: &ArgMatches) {
     for item in &items {
         println!("{}", item.as_line(&options));
     }
+
+    Ok(())
 }
 
 fn get_weight(item: &media::Media) -> usize {

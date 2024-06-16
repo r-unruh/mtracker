@@ -17,7 +17,12 @@ pub fn handle(
     repo: &mut repo::Repo,
     matches: &ArgMatches,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    // Get args
     let handle = arg_util::handle_from_matches(matches)?.unwrap();
+
+    // Init repo
+    repo.read()?;
+
     let media = repo.get_or_create(&handle);
 
     media.rating = None;
