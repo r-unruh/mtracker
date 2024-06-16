@@ -27,7 +27,7 @@ fn parse_last_seen(input: &str) -> Result<Option<chrono::NaiveDate>, Box<dyn std
 fn parse_tags(input: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
     let tags: Vec<String> = parse_prop::<String>(("tags", input))?
         .unwrap()
-        .split(",")
+        .split(',')
         .map(str::trim)
         .map(str::to_string)
         .collect();
@@ -54,7 +54,7 @@ impl media::Media {
         // Subsequent lines are key:value pairs
         for line in lines {
             if line.is_empty() {
-                return Err(format!("illegal empty line").into());
+                return Err("illegal empty line".into());
             }
 
             let (key, value) = match line.split_once(':') {
@@ -62,7 +62,6 @@ impl media::Media {
                 None => return Err(format!("delimiter missing: {line}").into()),
             };
 
-            // Original
             match key {
                 "year" => year = parse_prop::<u16>((key, value))?,
                 "rating" => rating = parse_prop::<u8>((key, value))?,

@@ -1,8 +1,8 @@
-use crate::args;
-use crate::media;
 use clap::{ArgMatches, Command};
 
 use crate::arg_util;
+use crate::args;
+use crate::media;
 
 pub fn command() -> Command {
     Command::new("ls")
