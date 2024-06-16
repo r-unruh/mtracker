@@ -1,4 +1,4 @@
-use clap::{crate_authors, crate_version, Command};
+use clap::{crate_authors, crate_name, crate_version, Command};
 
 mod add;
 mod arg_util;
@@ -11,7 +11,7 @@ mod remove;
 mod unrate;
 
 pub fn run(repo: &mut media::repo::Repo) -> Result<(), Box<dyn std::error::Error>> {
-    let matches = Command::new("mttracker")
+    let matches = Command::new(crate_name!())
         .version(crate_version!())
         .author(crate_authors!())
         .about("mtracker - cli media tracker")
