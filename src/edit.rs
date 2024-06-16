@@ -52,7 +52,7 @@ fn edit_db_entry(
     db_entry = fs::read_to_string(&tmp_file_path)?.trim().to_string();
 
     // Create new item based on db entry
-    let new_item = match Media::from_db_entry(db_entry.lines()) {
+    let new_item = match Media::from_db_entry(&db_entry) {
         Ok(item) => item,
         Err(e) => {
             return Err(format!(

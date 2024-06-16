@@ -91,7 +91,7 @@ impl Repo {
         // Parse blocks of text into media items
         let mut items: Vec<media::Media> = vec![];
         for block in blocks {
-            items.push(media::Media::from_db_entry(block.lines())?);
+            items.push(media::Media::from_db_entry(block)?);
         }
 
         Ok(items)

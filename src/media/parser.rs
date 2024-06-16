@@ -41,15 +41,22 @@ fn parse_tags(input: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
 
 impl media::Media {
     #[allow(clippy::missing_panics_doc)]
-    pub fn from_db_entry(mut lines: std::str::Lines) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_db_entry(entry: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let mut year: Option<u16> = None;
         let mut rating: Option<u8> = None;
         let mut note: String = String::new();
         let mut tags: Vec<String> = vec![];
         let mut last_seen: Option<chrono::NaiveDate> = None;
 
+        let mut lines = entry.lines();
+
         // First line is always the name
-        let name = lines.next().expect("lines can't be empty").to_string();
+        let name = match lines.next() {
+            Some(n) => n.to_string(),
+            None => {
+                return Err("entry can't be empty".into());
+            }
+        };
 
         // Subsequent lines are key:value pairs
         for line in lines {
@@ -110,15 +117,14 @@ mod tests {
     #[test]
     fn parses_from_db_entry() {
         // Badly formatted on purpose
-        let lines = "Forrest Gump
+        let entry = "Forrest Gump
 year:  1994
 rating:2
 tags: drama, romance,funny
 last_seen: 2020-12-31
-note:very long"
-            .lines();
+note:very long";
 
-        let media = media::Media::from_db_entry(lines).unwrap();
+        let media = media::Media::from_db_entry(entry).unwrap();
         assert_eq!(media.name, "Forrest Gump");
         assert_eq!(media.year, Some(1994));
         assert_eq!(media.rating, Some(2));
@@ -130,10 +136,9 @@ note:very long"
         assert_eq!(media.tags, vec!["drama", "romance", "funny"]);
 
         // Bad entry, but technically valid
-        let lines = "year: 2009
-"
-        .lines();
-        let media = media::Media::from_db_entry(lines).unwrap();
+        let entry = "year: 2009
+";
+        let media = media::Media::from_db_entry(entry).unwrap();
         assert_eq!(media.name, "year: 2009");
         assert_eq!(media.year, None);
         assert_eq!(media.rating, None);
@@ -144,47 +149,46 @@ note:very long"
 
     #[test]
     fn aborts_gracefully() {
-        // Illegal empty lines in between
-        let lines = "foobar
+        // Empty entry
+        let entry = "";
+        let error = media::Media::from_db_entry(entry).unwrap_err();
+        assert!(error.to_string().starts_with("entry can't be empty"));
 
-year: 2009"
-            .lines();
-        let error = media::Media::from_db_entry(lines).unwrap_err();
+        // Illegal empty lines in between
+        let entry = "foobar
+
+year: 2009";
+        let error = media::Media::from_db_entry(entry).unwrap_err();
         assert!(error.to_string().starts_with("illegal empty line"));
 
         // Not a number
-        let lines = "foobar
-year: invalid"
-            .lines();
-        let error = media::Media::from_db_entry(lines).unwrap_err();
+        let entry = "foobar
+year: invalid";
+        let error = media::Media::from_db_entry(entry).unwrap_err();
         assert!(error.to_string().starts_with("failed to parse year"));
 
         // Invalid number
-        let lines = "foobar
-rating: -4"
-            .lines();
-        let error = media::Media::from_db_entry(lines).unwrap_err();
+        let entry = "foobar
+rating: -4";
+        let error = media::Media::from_db_entry(entry).unwrap_err();
         assert!(error.to_string().starts_with("failed to parse rating"));
 
         // Non-existing key
-        let lines = "foobar
-foo: bar"
-            .lines();
-        let error = media::Media::from_db_entry(lines).unwrap_err();
+        let entry = "foobar
+foo: bar";
+        let error = media::Media::from_db_entry(entry).unwrap_err();
         assert!(error.to_string().starts_with("unknown key"));
 
         // Empty tags
-        let lines = "foobar
-tags: a,"
-            .lines();
-        let error = media::Media::from_db_entry(lines).unwrap_err();
+        let entry = "foobar
+tags: a,";
+        let error = media::Media::from_db_entry(entry).unwrap_err();
         assert!(error.to_string().starts_with("empty tag"));
 
         // Prop without delimiter
-        let lines = "foobar
-name value"
-            .lines();
-        let error = media::Media::from_db_entry(lines).unwrap_err();
+        let entry = "foobar
+name value";
+        let error = media::Media::from_db_entry(entry).unwrap_err();
         assert!(error.to_string().starts_with("delimiter missing"));
     }
 
