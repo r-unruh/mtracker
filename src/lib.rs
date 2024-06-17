@@ -5,12 +5,13 @@ mod arg_util;
 mod args;
 mod edit;
 mod list;
-pub mod media;
+mod media;
 mod rate;
 mod remove;
 mod unrate;
 
-pub fn run(repo: &mut media::repo::Repo) -> Result<(), Box<dyn std::error::Error>> {
+pub fn run() -> Result<(), Box<dyn std::error::Error>> {
+    // Setup commands
     let matches = Command::new(crate_name!())
         .version(crate_version!())
         .author(crate_authors!())
@@ -26,13 +27,21 @@ pub fn run(repo: &mut media::repo::Repo) -> Result<(), Box<dyn std::error::Error
         .subcommand(edit::command())
         .get_matches();
 
+    // Get database path
+    let mut db_file_path = dirs::data_dir().expect("failed to get user data directory");
+    db_file_path.push(format!("{}/db.txt", crate_name!()));
+
+    // Init media repo
+    let mut repo = media::repo::Repo::new(&db_file_path);
+
+    // Run command
     match matches.subcommand() {
-        Some(("ls", matches)) => list::handle(repo, matches),
-        Some(("add", matches)) => add::handle(repo, matches),
-        Some(("rm", matches)) => remove::handle(repo, matches),
-        Some(("rate", matches)) => rate::handle(repo, matches),
-        Some(("unrate", matches)) => unrate::handle(repo, matches),
-        Some(("edit", matches)) => edit::handle(repo, matches),
+        Some(("ls", matches)) => list::handle(&mut repo, matches),
+        Some(("add", matches)) => add::handle(&mut repo, matches),
+        Some(("rm", matches)) => remove::handle(&mut repo, matches),
+        Some(("rate", matches)) => rate::handle(&mut repo, matches),
+        Some(("unrate", matches)) => unrate::handle(&mut repo, matches),
+        Some(("edit", matches)) => edit::handle(&mut repo, matches),
         _ => unreachable!(),
     }
 }

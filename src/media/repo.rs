@@ -108,6 +108,9 @@ impl Repo {
 
     /// Write all items to file
     pub fn write(&self) -> Result<(), Box<dyn std::error::Error>> {
+        // Create path if it doesn't exist
+        std::fs::create_dir_all(self.path.parent().unwrap())?;
+
         let mut output = String::new();
         for entry in self.items.iter().map(media::Media::to_db_entry) {
             output += &entry;
