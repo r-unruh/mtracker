@@ -10,8 +10,8 @@ pub fn command() -> Command {
         .about("Remove item or tag(s)")
         .arg_required_else_help(true)
         .arg(args::identifier())
-        .arg(args::tag().help("tag(s) to remove"))
         .arg(args::year())
+        .arg(args::tag().help("Tag(s) to remove, comma-separated"))
 }
 
 pub fn handle(

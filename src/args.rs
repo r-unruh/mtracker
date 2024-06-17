@@ -4,6 +4,11 @@ pub fn identifier() -> Arg {
     Arg::new("IDENTIFIER")
         .required(true)
         .help("\"name (year)\" or \"name\"")
+        .long_help(
+            "The name (and optionally year of release) of the movie / series.
+
+Example: \"The Movie (2024)\" or just \"The Movie\"",
+        )
 }
 
 pub fn year() -> Arg {
@@ -12,7 +17,7 @@ pub fn year() -> Arg {
         .short('y')
         .value_parser(clap::value_parser!(u16))
         .long("year")
-        .help("specify year of release")
+        .help("Specify year of release")
 }
 
 pub fn tag() -> Arg {
@@ -29,6 +34,14 @@ pub fn note() -> Arg {
         .required(false)
         .short('n')
         .long("note")
+        .help("A short, single-line note")
+        .long_help(
+            "A short, single-line note
+
+Examples:
+- Recommended by Max
+- Too many jumpscares",
+        )
 }
 
 pub fn note_bool() -> Arg {

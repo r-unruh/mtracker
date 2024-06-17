@@ -9,9 +9,9 @@ pub fn command() -> Command {
         .visible_aliases(["list"])
         .about("List items")
         .arg_required_else_help(false)
-        .arg(args::tag().help("tag(s) to search for"))
-        .arg(args::note_bool().help("whether to display notes"))
-        .arg(args::tags_bool().help("whether to display tags"))
+        .arg(args::tag().help("Tag(s) to search for, comma-separated"))
+        .arg(args::note_bool().help("Whether to display notes"))
+        .arg(args::tags_bool().help("Whether to display tags"))
 }
 
 pub fn handle(

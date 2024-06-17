@@ -14,7 +14,7 @@ pub fn command() -> Command {
             Arg::new("RATING")
                 .required(true)
                 .value_parser(clap::value_parser!(u8).range(0..=255))
-                .help("rating (number)"),
+                .help("Rating (number)"),
         )
         .arg(args::year())
 }

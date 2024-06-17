@@ -10,8 +10,8 @@ pub fn command() -> Command {
         .about("Add new item and/or tag an existing item")
         .arg_required_else_help(true)
         .arg(args::identifier())
-        .arg(args::tag().help("tag(s) to add"))
         .arg(args::year())
+        .arg(args::tag().help("Tag(s) to add, comma-separated"))
         .arg(args::note())
 }
 
