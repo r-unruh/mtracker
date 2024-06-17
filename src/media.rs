@@ -1,4 +1,3 @@
-use chrono;
 use std::convert::Into;
 
 pub mod format;

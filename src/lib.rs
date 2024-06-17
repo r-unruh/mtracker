@@ -17,7 +17,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let matches = Command::new(crate_name!())
         .version(crate_version!())
         .author(crate_authors!())
-        .about("mtracker - cli media tracker")
+        .about(format!("{} - cli media tracker", crate_name!()))
         .subcommand_required(true)
         .arg_required_else_help(true)
         .allow_external_subcommands(false)
