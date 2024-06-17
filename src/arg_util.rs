@@ -26,3 +26,16 @@ pub fn handle_from_matches(
 
     Ok(Some(handle::Handle::from_user_input(identifier.as_str())))
 }
+
+pub fn note_from_matches(
+    matches: &ArgMatches,
+) -> Result<Option<String>, Box<dyn std::error::Error>> {
+    match matches.try_get_one::<String>("NOTE")? {
+        Some(note) => if note.contains('\n') {
+            Err("note should be a single line".into())
+        } else {
+            Ok(Some(note.to_string()))
+        },
+        None => Ok(None),
+    }
+}

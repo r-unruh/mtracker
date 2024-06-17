@@ -22,7 +22,7 @@ pub fn handle(
     // Get args
     let handle = arg_util::handle_from_matches(matches)?.unwrap();
     let tags = arg_util::tags_from_matches(matches);
-    let note = matches.try_get_one::<String>("NOTE")?;
+    let note = arg_util::note_from_matches(matches)?;
 
     // Init repo
     repo.read()?;
@@ -51,7 +51,7 @@ pub fn handle(
     // Add note
     if note.is_some() {
         if media.note.is_empty() {
-            media.note = note.unwrap().to_string();
+            media.note = note.unwrap();
             println!("Added note to {handle}: {}", media.note);
         } else {
             return Err(format!(
