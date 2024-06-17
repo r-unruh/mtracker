@@ -10,6 +10,8 @@ mod rate;
 mod remove;
 mod unrate;
 
+#[allow(clippy::missing_errors_doc)]
+#[allow(clippy::missing_panics_doc)]
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     // Setup commands
     let matches = Command::new(crate_name!())
