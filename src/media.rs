@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Result};
 use std::convert::Into;
 
 pub mod format;
@@ -42,12 +43,12 @@ impl Media {
         }
     }
 
-    pub fn remove_tag(&mut self, tag: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn remove_tag(&mut self, tag: &str) -> Result<()> {
         if let Some(index) = self.tags.iter().position(|t| t == tag) {
             self.tags.remove(index);
             Ok(())
         } else {
-            Err("Tag not found".into())
+            Err(anyhow!("Tag not found"))
         }
     }
 

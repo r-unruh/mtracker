@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Result};
 use clap::ArgMatches;
 
 use crate::media::handle;
@@ -9,9 +10,7 @@ pub fn tags_from_matches(matches: &ArgMatches) -> Vec<&String> {
     }
 }
 
-pub fn handle_from_matches(
-    matches: &ArgMatches,
-) -> Result<Option<handle::Handle>, Box<dyn std::error::Error>> {
+pub fn handle_from_matches(matches: &ArgMatches) -> Result<Option<handle::Handle>> {
     let user_input = match matches.try_get_one::<String>("IDENTIFIER")? {
         Some(i) => i.to_string(),
         None => {
@@ -27,15 +26,15 @@ pub fn handle_from_matches(
     Ok(Some(handle::Handle::from_user_input(identifier.as_str())))
 }
 
-pub fn note_from_matches(
-    matches: &ArgMatches,
-) -> Result<Option<String>, Box<dyn std::error::Error>> {
+pub fn note_from_matches(matches: &ArgMatches) -> Result<Option<String>> {
     match matches.try_get_one::<String>("NOTE")? {
-        Some(note) => if note.contains('\n') {
-            Err("note should be a single line".into())
-        } else {
-            Ok(Some(note.to_string()))
-        },
+        Some(note) => {
+            if note.contains('\n') {
+                Err(anyhow!("note should be a single line"))
+            } else {
+                Ok(Some(note.to_string()))
+            }
+        }
         None => Ok(None),
     }
 }

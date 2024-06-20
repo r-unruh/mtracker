@@ -1,3 +1,4 @@
+use anyhow::Result;
 use clap::{crate_authors, crate_name, crate_version, Command};
 
 mod add;
@@ -12,7 +13,7 @@ mod unrate;
 
 #[allow(clippy::missing_errors_doc)]
 #[allow(clippy::missing_panics_doc)]
-pub fn run() -> Result<(), Box<dyn std::error::Error>> {
+pub fn run() -> Result<()> {
     // Setup commands
     let matches = Command::new(crate_name!())
         .version(crate_version!())

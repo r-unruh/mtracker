@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Result};
 use std::{fs, path};
 extern crate dirs;
 
@@ -46,14 +47,14 @@ impl Repo {
         &mut self,
         handle: &media::handle::Handle,
         f: impl FnOnce(&mut media::Media),
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<()> {
         assert!(self.initialized, "{NOT_INITIALIZED}");
         match self.get(handle) {
             Some(item) => {
                 f(item);
                 Ok(())
             }
-            None => Err(format!("item not found: {handle}").into()),
+            None => Err(anyhow!("item not found: {handle}")),
         }
     }
 
@@ -65,19 +66,19 @@ impl Repo {
     pub fn remove_by_handle(
         &mut self,
         handle: &media::handle::Handle,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<()> {
         assert!(self.initialized, "{NOT_INITIALIZED}");
         match self.items.iter().position(|m| m.matches_handle(handle)) {
             Some(index) => {
                 self.items.swap_remove(index);
                 Ok(())
             }
-            None => Err(format!("item not found: {}", &handle).into()),
+            None => Err(anyhow!("item not found: {}", &handle)),
         }
     }
 
     /// Read all items from file into memory
-    pub fn read(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn read(&mut self) -> Result<()> {
         self.initialized = true;
         let file_content = match fs::read_to_string(&self.path) {
             Ok(c) => {
@@ -107,7 +108,7 @@ impl Repo {
     }
 
     /// Write all items to file
-    pub fn write(&self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn write(&self) -> Result<()> {
         // Create path if it doesn't exist
         std::fs::create_dir_all(self.path.parent().unwrap())?;
 

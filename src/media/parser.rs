@@ -1,30 +1,29 @@
+use anyhow::{anyhow, Result};
 use chrono;
 
 use crate::media;
 
 // (key, value)
-fn parse_prop<'a, T: std::str::FromStr>(
-    arg: (&'a str, &'a str),
-) -> Result<Option<T>, Box<dyn std::error::Error>>
+fn parse_prop<'a, T: std::str::FromStr>(arg: (&'a str, &'a str)) -> Result<Option<T>>
 where
     <T as std::str::FromStr>::Err: std::fmt::Display,
 {
     match str::parse::<T>(arg.1) {
         Ok(v) => Ok(Some(v)),
-        Err(e) => Err(format!("failed to parse {}: {e}", arg.0).into()),
+        Err(e) => Err(anyhow!("failed to parse {}: {e}", arg.0)),
     }
 }
 
-fn parse_last_seen(input: &str) -> Result<Option<chrono::NaiveDate>, Box<dyn std::error::Error>> {
+fn parse_last_seen(input: &str) -> Result<Option<chrono::NaiveDate>> {
     match chrono::NaiveDate::parse_from_str(input, "%Y-%m-%d") {
         Ok(date) => Ok(Some(date)),
-        Err(e) => {
-            Err(format!("failed to parse last_seen: {e}\nExpected format: 2024-12-31").into())
-        }
+        Err(e) => Err(anyhow!(
+            "failed to parse last_seen: {e}\nExpected format: 2024-12-31"
+        )),
     }
 }
 
-fn parse_tags(input: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+fn parse_tags(input: &str) -> Result<Vec<String>> {
     let tags: Vec<String> = parse_prop::<String>(("tags", input))?
         .unwrap()
         .split(',')
@@ -33,7 +32,7 @@ fn parse_tags(input: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
         .collect();
 
     if tags.contains(&String::new()) {
-        Err("empty tag".into())
+        Err(anyhow!("empty tag"))
     } else {
         Ok(tags)
     }
@@ -41,7 +40,7 @@ fn parse_tags(input: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
 
 impl media::Media {
     #[allow(clippy::missing_panics_doc)]
-    pub fn from_db_entry(entry: &str) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_db_entry(entry: &str) -> Result<Self> {
         let mut year: Option<u16> = None;
         let mut rating: Option<u8> = None;
         let mut note: String = String::new();
@@ -54,19 +53,19 @@ impl media::Media {
         let name = match lines.next() {
             Some(n) => n.to_string(),
             None => {
-                return Err("entry can't be empty".into());
+                return Err(anyhow!("entry can't be empty"));
             }
         };
 
         // Subsequent lines are key:value pairs
         for line in lines {
             if line.is_empty() {
-                return Err("illegal empty line".into());
+                return Err(anyhow!("illegal empty line"));
             }
 
             let (key, value) = match line.split_once(':') {
                 Some((n, v)) => (n, v.trim()),
-                None => return Err(format!("delimiter missing: {line}").into()),
+                None => return Err(anyhow!("delimiter missing: {line}")),
             };
 
             match key {
@@ -75,7 +74,7 @@ impl media::Media {
                 "note" => note = parse_prop::<String>((key, value))?.unwrap(),
                 "tags" => tags = parse_tags(value)?,
                 "last_seen" => last_seen = parse_last_seen(value)?,
-                _ => return Err(format!("unknown key: {key}").into()),
+                _ => return Err(anyhow!("unknown key: {key}")),
             };
         }
 

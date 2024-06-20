@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Result};
 use clap::{ArgMatches, Command};
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::{
@@ -20,10 +21,7 @@ pub fn command() -> Command {
         .arg_required_else_help(false)
 }
 
-pub fn handle(
-    repo: &mut repo::Repo,
-    matches: &ArgMatches,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub fn handle(repo: &mut repo::Repo, matches: &ArgMatches) -> Result<()> {
     if let Some(handle) = arg_util::handle_from_matches(matches)? {
         edit_db_entry(repo, &handle)
     } else {
@@ -31,16 +29,13 @@ pub fn handle(
     }
 }
 
-fn edit_db_entry(
-    repo: &mut repo::Repo,
-    handle: &handle::Handle,
-) -> Result<(), Box<dyn std::error::Error>> {
+fn edit_db_entry(repo: &mut repo::Repo, handle: &handle::Handle) -> Result<()> {
     // Init repo
     repo.read()?;
 
     // Find media
     let Some(item) = repo.get(handle) else {
-        return Err(format!("item not found: {handle}").into());
+        return Err(anyhow!("item not found: {handle}"));
     };
 
     // Create temporary file and fill it with this media's data
@@ -58,10 +53,9 @@ fn edit_db_entry(
     let new_item = match Media::from_db_entry(&db_entry) {
         Ok(item) => item,
         Err(e) => {
-            return Err(format!(
+            return Err(anyhow!(
                 "failed to edit {handle}: {e}\n\nYour input:\n{db_entry}\n\nNo changes made."
-            )
-            .into())
+            ))
         }
     };
 
@@ -77,7 +71,7 @@ fn edit_db_entry(
     Ok(())
 }
 
-fn edit_db(repo: &mut repo::Repo) -> Result<(), Box<dyn std::error::Error>> {
+fn edit_db(repo: &mut repo::Repo) -> Result<()> {
     // Create temporary file by copying database
     let tmp_file_path = get_tmp_file_path();
     fs::copy(&repo.path, &tmp_file_path)?;
@@ -97,7 +91,7 @@ fn edit_db(repo: &mut repo::Repo) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn launch_editor(path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+fn launch_editor(path: &PathBuf) -> Result<()> {
     process::Command::new(var("EDITOR")?).arg(path).status()?;
     Ok(())
 }

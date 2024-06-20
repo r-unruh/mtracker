@@ -1,3 +1,4 @@
+use anyhow::Result;
 use clap::{ArgMatches, Command};
 
 use crate::arg_util;
@@ -14,10 +15,7 @@ pub fn command() -> Command {
         .arg(args::tags_bool().help("Whether to display tags"))
 }
 
-pub fn handle(
-    repo: &mut media::repo::Repo,
-    matches: &ArgMatches,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub fn handle(repo: &mut media::repo::Repo, matches: &ArgMatches) -> Result<()> {
     // Get args
     let tags = arg_util::tags_from_matches(matches);
 

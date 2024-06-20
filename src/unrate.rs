@@ -1,3 +1,4 @@
+use anyhow::Result;
 use clap::{ArgMatches, Command};
 
 use crate::arg_util;
@@ -13,10 +14,7 @@ pub fn command() -> Command {
         .arg(args::year())
 }
 
-pub fn handle(
-    repo: &mut repo::Repo,
-    matches: &ArgMatches,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub fn handle(repo: &mut repo::Repo, matches: &ArgMatches) -> Result<()> {
     // Get args
     let handle = arg_util::handle_from_matches(matches)?.unwrap();
 
