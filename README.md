@@ -22,6 +22,9 @@ cargo install mtracker
 Otherwise just download the latest
 [release](https://github.com/r-unruh/mtracker/releases) and put it somewhere
 within your PATH variable, e.g.: `/usr/local/bin`
+```bash
+sudo curl -o /usr/local/bin/mtracker https://github.com/r-unruh/mtracker/releases/latest/download/mtracker
+```
 
 Don't forget to make the file executable:
 ```bash
