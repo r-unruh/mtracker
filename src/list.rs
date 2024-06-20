@@ -41,8 +41,17 @@ pub fn handle(repo: &mut media::repo::Repo, matches: &ArgMatches) -> Result<()> 
         items.retain(|i| tags.iter().all(|t| i.tags.contains(t)));
     }
 
-    // Sort (watchlist, rating, unrated)
-    items.sort_by(|a, b| get_weight(a).cmp(&get_weight(b)).reverse());
+    // Sort (watchlist, rating, unrated, alphabetic)
+    items.sort_by(|a, b| {
+        let a_weight = get_weight(a);
+        let b_weight = get_weight(b);
+
+        if a_weight == b_weight {
+            a.name.to_lowercase().cmp(&b.name.to_lowercase())
+        } else {
+            b_weight.cmp(&a_weight)
+        }
+    });
 
     // Print
     for item in &items {
