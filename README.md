@@ -1,9 +1,6 @@
 # mtracker
-cli movie tracker written in Rust - keep track of watched movies and series
-
-## What's this?
-mtracker is a simple cli tool that lets you keep track of watched movies and
-series.
+mtracker is a simple cli tool for Linux that lets you keep track of watched
+movies and series.
 
 * Designed to work well with standard Linux command line tools like grep.
 * Flat file system: All data is saved in a human-readable text file.
@@ -31,7 +28,7 @@ Don't forget to make the file executable:
 sudo chmod +x /usr/local/bin/mtracker
 ```
 
-More user-friendly install options will be added at some point.
+More user-friendly install options will probably be added at some point.
 
 
 ## Tutorial
@@ -70,6 +67,10 @@ Which returns this list, sorted by rating:
 This should cover the basics. Type `mtracker help [subcommand]` to see all
 options.
 
+> [!NOTE]
+> Commands are not yet stable and may change in future versions.
+> Make sure to backup your database on a regular basis.
+
 
 ## Database
 The database is just a plain text file that you can edit by hand. It looks like
@@ -102,14 +103,45 @@ highest rated movie is a 7, then all the ratings go from 0 to 7. Of course, you
 don't *have* to rate anything at all.
 
 Here are a few options:
-* 1 to 10: Rate the way that most websites do.
-* 1 to 5: In case you prefer fewer options. No decimal numbers though.
-* 0 to 1: Binary mode, or: Like/Dislike. Simple! Ratings don't have to start at
-  1.
-* 0 to 2: My personal favorite:
-  * 2 = Like
-  * 1 = Okayish
-  * 0 = Dislike
+
+<table>
+  <tr>
+    <th>Rating Scale</th>
+    <th>Explanation</th>
+  </tr>
+  <tr>
+    <td>1 to 10</td>
+    <td>You can rate the way most movie websites do.</td>
+  </tr>
+  <tr>
+    <td>1 to 5</td>
+    <td>
+      In case you prefer fewer options, this might be better. There are no
+      decimal numbers though.
+    </td>
+  </tr>
+  <tr>
+    <td>0 to 1</td>
+    <td>
+      Binary mode, or: Like/Dislike. Most simple! Ratings don't have to start
+      at 1.
+    </td>
+  </tr>
+  <tr>
+    <td>0 to 2</td>
+    <td>
+      <p>
+        If you often find yourself neither liking nor disliking movies, you may
+        need a third option. This is the system I'm using:
+      </p>
+      <ul>
+        <li>2 = Like</li>
+        <li>1 = Okayish</li>
+        <li>0 = Dislike</li>
+      </ul>
+    </td>
+  </tr>
+</table>
 
 ### Tags
 You can tag movies and filter by tags when listing them later. `watchlist` is a
