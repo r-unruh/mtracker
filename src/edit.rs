@@ -1,12 +1,6 @@
 use anyhow::{anyhow, Result};
 use clap::{ArgMatches, Command};
-use std::time::{SystemTime, UNIX_EPOCH};
-use std::{
-    env::{temp_dir, var},
-    fs,
-    path::PathBuf,
-    process,
-};
+use std::io::{Read, Write};
 
 use crate::arg_util;
 use crate::args;
@@ -38,16 +32,8 @@ fn edit_db_entry(repo: &mut repo::Repo, handle: &handle::Handle) -> Result<()> {
         return Err(anyhow!("item not found: {handle}"));
     };
 
-    // Create temporary file and fill it with this media's data
-    let tmp_file_path = get_tmp_file_path();
-    let mut db_entry = item.to_db_entry();
-    fs::write(&tmp_file_path, db_entry)?;
-
-    // Edit file manually
-    launch_editor(&tmp_file_path)?;
-
-    // Reread media data after manual editing
-    db_entry = fs::read_to_string(&tmp_file_path)?.trim().to_string();
+    // Edit with editor
+    let db_entry = edit::edit(item.to_db_entry())?;
 
     // Create new item based on db entry
     let new_item = match Media::from_db_entry(&db_entry) {
@@ -64,44 +50,36 @@ fn edit_db_entry(repo: &mut repo::Repo, handle: &handle::Handle) -> Result<()> {
     repo.add(new_item);
     repo.write()?;
 
-    // Clean up
-    fs::remove_file(&tmp_file_path)?;
-
     println!("Updated item: {handle}");
     Ok(())
 }
 
 fn edit_db(repo: &mut repo::Repo) -> Result<()> {
-    // Create temporary file by copying database
-    let tmp_file_path = get_tmp_file_path();
-    fs::copy(&repo.path, &tmp_file_path)?;
+    // Get original db
+    let original_db = match std::fs::read_to_string(&repo.path) {
+        Ok(content) => content,
+        Err(_) => String::new(),
+    };
 
-    // Edit file manually
-    launch_editor(&tmp_file_path)?;
+    // Copy original db to tempfile
+    let mut tmp_file = tempfile::NamedTempFile::new().unwrap();
+    tmp_file.write_all(original_db.as_bytes())?;
+
+    // Edit new db
+    let mut new_db = String::new();
+    tmp_file.reopen()?.read_to_string(&mut new_db)?;
+    new_db = edit::edit(new_db)?;
+
+    // No changes, abort
+    if new_db == original_db {
+        println!("No changes.");
+        return Ok(());
+    }
 
     // TODO: Validate database
 
-    // Overwrite original config file
-    fs::copy(&tmp_file_path, &repo.path)?;
-
-    // Clean up
-    fs::remove_file(&tmp_file_path)?;
-
+    // Save changes
+    std::fs::write(&repo.path, new_db)?;
     println!("Database updated.");
     Ok(())
-}
-
-fn launch_editor(path: &PathBuf) -> Result<()> {
-    process::Command::new(var("EDITOR")?).arg(path).status()?;
-    Ok(())
-}
-
-fn get_tmp_file_path() -> PathBuf {
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
-    let mut tmp_file_path = temp_dir();
-    tmp_file_path.push(format!("mtracker_{now}.txt"));
-    tmp_file_path
 }
