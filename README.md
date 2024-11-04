@@ -91,9 +91,7 @@ Whiplash
 rating: 10
 ```
 
-On Linux, the database file is automatically created and stored in:
-`~/.local/share/mtracker/db.txt`
-
+On Linux, the database file is automatically created and stored in `~/.local/share/mtracker/db.txt`. If any relevant XDG environment variables (e.g., `XDG_DATA_HOME`) are set, they will be respected, and the file will be stored according to the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/latest/).
 
 ## Features
 ### Ratings
