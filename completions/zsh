@@ -1,0 +1,65 @@
+#compdef mtracker
+
+_mtracker() {
+	local -a commands
+	local curcontext="$curcontext" state line
+
+	commands=(
+		'list:List tracked movies'
+		'ls:List tracked movies'
+		'add:Track a movie'
+		'a:Track a movie'
+		'remove:Untrack a movie'
+		'rm:Untrack a movie'
+		'rate:Rate a tracked movie'
+		'r:Rate a tracked movie'
+		'unrate:Unrate a tracked movie'
+		'u:Unrate a tracked movie'
+		'edit:Edit item or whole database'
+		'help:Print the usage help'
+	)
+
+	_arguments -C \
+		'1:command:->command' \
+		'*::arg:->args'
+
+	case $state in
+		command)
+			_describe 'command' commands
+			;;
+		args)
+			case $line[1] in
+				(add|a)
+					local -a movies
+					movies=("${(@f)$(mtracker ls | sed -E "s/^\S+\s(WL:\s)?//")}")
+					_arguments \
+						'1:movie name:_values "movie" "${movies[@]}"' \
+						'--tag[add tags to a movie, either tracked or untracked]'
+					;;
+				(remove|rm)
+					local -a movies
+					movies=("${(@f)$(mtracker ls | sed -E "s/^\S+\s(WL:\s)?//")}")
+					_arguments '1:movie ID:(${movies})'
+					;;
+				(rate|r)
+					local -a unrated_movies
+					unrated_movies=("${(@f)$(mtracker ls | grep -E "^\?+\s" | sed -E "s/^\?+\s//" | grep -Ev "^WL")}")
+
+					_arguments \
+						'1:movie ID:(${unrated_movies})' \
+						'2:rating (0-9):(0 1 2 3 4 5 6 7 8 9)'
+					;;
+				(unrate|u)
+					local -a rated_movies
+					rated_movies=("${(@f)$(mtracker ls | grep -Ev "^\?" | sed -E "s/^\S+\s//")}")
+					_arguments '1:movie ID:(${rated_movies})'
+					;;
+				(list|ls)
+					_arguments '--tag[show only movies with the specified tags]' '--year[show movies matching the year query]'
+					;;
+			esac
+			;;
+	esac
+}
+
+compdef _mtracker mtracker
