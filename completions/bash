@@ -29,9 +29,9 @@ _mtracker() {
             ;;
         rate|r)
             if [[ $COMP_CWORD -eq 2 ]]; then
-                local unrated_movies IFS=$'\n'
-                unrated_movies=$(mtracker ls | grep -E "^\?+\s" | sed -E "s/^\?+\s//" | grep -Ev "^WL")
-                COMPREPLY=( $(compgen -W "$unrated_movies" -- "$cur") )
+                local movies IFS=$'\n'
+                movies=$(mtracker ls | sed -E "s/^\S+\s(WL:\s)?//")
+                COMPREPLY=( $(compgen -W "$movies" -- "$cur") )
             elif [[ $COMP_CWORD -eq 3 ]]; then
                 COMPREPLY=( $(compgen -W "0 1 2 3 4 5 6 7 8 9" -- "$cur") )
             fi
