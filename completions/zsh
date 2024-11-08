@@ -51,7 +51,7 @@ _mtracker() {
                     ;;
                 (unrate|u)
                     local -a rated_movies
-                    rated_movies=("${(@f)$(mtracker ls | grep -Ev "^\?" | sed -E "s/^\S+\s//")}")
+                    rated_movies=("${(@f)$(mtracker ls | grep -Ev "^\?" | sed -E "s/^\S+\s(WL:\s)?//")}")
                     _arguments '1:movie ID:(${rated_movies})'
                     ;;
                 (list|ls)

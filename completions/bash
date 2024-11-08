@@ -38,7 +38,7 @@ _mtracker() {
             ;;
         unrate|u)
             local rated_movies IFS=$'\n'
-            rated_movies=$(mtracker ls | grep -Ev "^\?" | sed -E "s/^\S+\s//")
+            rated_movies=$(mtracker ls | grep -Ev "^\?" | sed -E "s/^\S+\s(WL:\s)?//")
             COMPREPLY=( $(compgen -W "$rated_movies" -- "$cur") )
             ;;
         list|ls)
