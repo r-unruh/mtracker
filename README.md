@@ -1,6 +1,6 @@
 # mtracker
 mtracker is a simple cli tool for Linux that lets you keep track of watched
-movies and series. Or any other kind of media, like video games.
+movies and series. Or any other kind of media, like books and video games.
 
 * Designed to work well with standard Linux command line tools like grep.
 * Flat file system: All data is saved in a human-readable text file.
