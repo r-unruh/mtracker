@@ -45,6 +45,12 @@ pub fn handle(repo: &mut media::repo::Repo, matches: &ArgMatches) -> Result<()> 
             });
         }
 
+        // Filter by special terms
+        else if t == &"rated" {
+            items.retain(|i| i.rating.is_some());
+        } else if t == &"unrated" {
+            items.retain(|i| i.rating.is_none());
+        }
 
         // Filter by tags
         else {

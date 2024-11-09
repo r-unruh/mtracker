@@ -145,6 +145,18 @@ Here are a few options:
 You can tag movies and filter by tags when listing them later. `watchlist` is a
 special tag that highlights items and puts them on top of everything else.
 
+### Special search terms
+When listing itims with the `ls` subcommand, you can filter for additional attributes:
+
+Term                | Meaning
+--------------------|--------------
+`rated`             | List items that have a rating
+`unrated`           | List items without a rating
+`<year>`            | List items released in `<year>` (see examples)
+`<year>-<year>`     | List items released between `<year>` and `<year>`
+`-<year>`           | List items released before or in `<year>`
+`<year>-`           | List items released after or in `<year>`
+
 
 ## Command examples
 Command                                               | Action
