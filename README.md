@@ -150,7 +150,8 @@ You can tag movies and filter by tags when listing them later. `watchlist` is a
 special tag that highlights items and puts them on top of everything else.
 
 ### Special search terms
-When listing itims with the `ls` subcommand, you can filter for additional attributes:
+When listing items with the `ls` subcommand, you can filter for additional
+attributes:
 
 Term                | Meaning
 --------------------|--------------
@@ -167,7 +168,7 @@ Command                                               | Action
 ------------------------------------------------------|--------------
 `mtracker ls`                                         | List all items
 `mtracker ls horror comedy`                           | List items that are tagged both horror and comedy
-`mtracker ls horror 2022-2024"`                       | List horror movies that were released between 2022 and 2024
+`mtracker ls horror 2022-2024`                        | List horror movies that were released between 2022 and 2024
 `mtracker add "Aliens (1986)" --tag=watchlist,horror` | Add new item with tags OR add tags to an existing item
 `mtracker rate "Aliens (1986)" 5`                     | Rate item a 5 (and remove from watchlist)
 `mtracker ls \| grep -i aliens`                       | Pipe to grep to find entries
