@@ -10,6 +10,7 @@ mod media;
 mod rate;
 mod remove;
 mod unrate;
+mod tags;
 
 #[allow(clippy::missing_errors_doc)]
 #[allow(clippy::missing_panics_doc)]
@@ -28,6 +29,7 @@ pub fn run() -> Result<()> {
         .subcommand(rate::command())
         .subcommand(unrate::command())
         .subcommand(edit::command())
+        .subcommand(tags::command())
         .get_matches();
 
     // Get database path
@@ -45,6 +47,7 @@ pub fn run() -> Result<()> {
         Some(("rate", matches)) => rate::handle(&mut repo, matches),
         Some(("unrate", matches)) => unrate::handle(&mut repo, matches),
         Some(("edit", matches)) => edit::handle(&mut repo, matches),
+        Some(("tags", matches)) => tags::handle(&mut repo, matches),
         _ => unreachable!(),
     }
 }
