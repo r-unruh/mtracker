@@ -59,7 +59,7 @@ pub fn handle(repo: &mut media::repo::Repo, matches: &ArgMatches) -> Result<()> 
 
     // Filter by tags
     if !tags.is_empty() {
-        items.retain(|i| tags.iter().all(|t| i.tags.contains(t)));
+        items.retain(|i| tags.iter().all(|t| i.matches_tag(t)));
     }
 
     // Filter by year
