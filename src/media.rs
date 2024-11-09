@@ -37,12 +37,6 @@ impl Media {
         self.name == handle.name && self.year == handle.year
     }
 
-    pub fn matches_tag(&self, tag: &str) -> bool {
-        self.tags.contains(&tag.to_string())
-            || (tag == "rated" && self.rating.is_some())
-            || (tag == "unrated" && self.rating.is_none())
-    }
-
     pub fn add_tag(&mut self, tag: &str) {
         if !self.tags.iter().any(|t| t == tag) {
             self.tags.push(tag.into());
