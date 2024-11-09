@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 use std::convert::Into;
 
+pub mod config;
 pub mod format;
 pub mod handle;
 pub mod parser;

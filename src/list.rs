@@ -15,12 +15,12 @@ pub fn command() -> Command {
         .arg(args::tags_bool().help("Whether to display tags"))
 }
 
-pub fn handle(repo: &mut media::repo::Repo, matches: &ArgMatches) -> Result<()> {
+pub fn handle(matches: &ArgMatches) -> Result<()> {
     // Get args
     let terms = arg_util::terms_from_matches(matches);
 
     // Init repo
-    repo.read()?;
+    let repo = media::repo::Repo::default();
 
     let mut items = repo.get_all();
 

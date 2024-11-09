@@ -4,6 +4,7 @@ use std::io::{Read, Write};
 
 use crate::arg_util;
 use crate::args;
+use crate::media::config::Config;
 use crate::media::{handle, repo, Media};
 
 pub fn command() -> Command {
@@ -15,17 +16,17 @@ pub fn command() -> Command {
         .arg_required_else_help(false)
 }
 
-pub fn handle(repo: &mut repo::Repo, matches: &ArgMatches) -> Result<()> {
+pub fn handle(matches: &ArgMatches) -> Result<()> {
     if let Some(handle) = arg_util::handle_from_matches(matches)? {
-        edit_db_entry(repo, &handle)
+        edit_db_entry(&handle)
     } else {
-        edit_db(repo)
+        edit_db()
     }
 }
 
-fn edit_db_entry(repo: &mut repo::Repo, handle: &handle::Handle) -> Result<()> {
+fn edit_db_entry(handle: &handle::Handle) -> Result<()> {
     // Init repo
-    repo.read()?;
+    let mut repo = repo::Repo::default();
 
     // Find media
     let Some(item) = repo.get(handle) else {
@@ -54,12 +55,10 @@ fn edit_db_entry(repo: &mut repo::Repo, handle: &handle::Handle) -> Result<()> {
     Ok(())
 }
 
-fn edit_db(repo: &mut repo::Repo) -> Result<()> {
+fn edit_db() -> Result<()> {
     // Get original db
-    let original_db = match std::fs::read_to_string(&repo.path) {
-        Ok(content) => content,
-        Err(_) => String::new(),
-    };
+    let db_path = Config::default().path;
+    let original_db = std::fs::read_to_string(&db_path).unwrap_or_default();
 
     // Copy original db to tempfile
     let mut tmp_file = tempfile::NamedTempFile::new().unwrap();
@@ -79,7 +78,7 @@ fn edit_db(repo: &mut repo::Repo) -> Result<()> {
     // TODO: Validate database
 
     // Save changes
-    std::fs::write(&repo.path, new_db)?;
+    std::fs::write(db_path, new_db)?;
     println!("Database updated.");
     Ok(())
 }

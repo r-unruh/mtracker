@@ -20,13 +20,13 @@ pub fn command() -> Command {
         .arg(args::year())
 }
 
-pub fn handle(repo: &mut repo::Repo, matches: &ArgMatches) -> Result<()> {
+pub fn handle(matches: &ArgMatches) -> Result<()> {
     // Get args
     let handle = arg_util::handle_from_matches(matches)?.unwrap();
     let rating = matches.get_one::<u8>("RATING");
 
     // Init repo
-    repo.read()?;
+    let mut repo = repo::Repo::default();
 
     let media = repo.get_or_create(&handle);
 

@@ -16,14 +16,14 @@ pub fn command() -> Command {
         .arg(args::note())
 }
 
-pub fn handle(repo: &mut repo::Repo, matches: &ArgMatches) -> Result<()> {
+pub fn handle(matches: &ArgMatches) -> Result<()> {
     // Get args
     let handle = arg_util::handle_from_matches(matches)?.unwrap();
     let tags = arg_util::tags_from_matches(matches);
     let note = arg_util::note_from_matches(matches)?;
 
     // Init repo
-    repo.read()?;
+    let mut repo = repo::Repo::default();
 
     // Report error when just adding an existing item
     let media = repo.get(&handle);

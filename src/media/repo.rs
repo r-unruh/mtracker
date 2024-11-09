@@ -1,28 +1,27 @@
 use anyhow::{anyhow, Result};
-use std::{fs, path};
+use std::fs;
 extern crate dirs;
 
 use crate::media;
 
-const NOT_INITIALIZED: &str = "Repo not initialized";
+use super::config::Config;
 
 pub struct Repo {
-    pub path: path::PathBuf,
+    pub config: Config,
     pub items: Vec<media::Media>,
-    initialized: bool,
 }
 
 impl Repo {
-    pub fn new(path: &path::Path) -> Self {
-        Repo {
-            path: path.to_path_buf(),
-            items: vec![],
-            initialized: false,
-        }
+    fn new(config: Config) -> Self {
+        let mut repo = Self {
+            config,
+            items: Vec::default(),
+        };
+        repo.init();
+        repo
     }
 
     pub fn get(&mut self, handle: &media::handle::Handle) -> Option<&mut media::Media> {
-        assert!(self.initialized, "{NOT_INITIALIZED}");
         self.items.iter_mut().find(|m| m.matches_handle(handle))
     }
 
@@ -39,7 +38,6 @@ impl Repo {
     }
 
     pub fn get_all(&self) -> Vec<&media::Media> {
-        assert!(self.initialized, "{NOT_INITIALIZED}");
         self.items.iter().collect()
     }
 
@@ -48,7 +46,6 @@ impl Repo {
         handle: &media::handle::Handle,
         f: impl FnOnce(&mut media::Media),
     ) -> Result<()> {
-        assert!(self.initialized, "{NOT_INITIALIZED}");
         match self.get(handle) {
             Some(item) => {
                 f(item);
@@ -59,15 +56,10 @@ impl Repo {
     }
 
     pub fn add(&mut self, item: media::Media) {
-        assert!(self.initialized, "{NOT_INITIALIZED}");
         self.items.push(item);
     }
 
-    pub fn remove_by_handle(
-        &mut self,
-        handle: &media::handle::Handle,
-    ) -> Result<()> {
-        assert!(self.initialized, "{NOT_INITIALIZED}");
+    pub fn remove_by_handle(&mut self, handle: &media::handle::Handle) -> Result<()> {
         match self.items.iter().position(|m| m.matches_handle(handle)) {
             Some(index) => {
                 self.items.swap_remove(index);
@@ -78,19 +70,8 @@ impl Repo {
     }
 
     /// Read all items from file into memory
-    pub fn read(&mut self) -> Result<()> {
-        self.initialized = true;
-        let file_content = match fs::read_to_string(&self.path) {
-            Ok(c) => {
-                if c.is_empty() {
-                    return Ok(());
-                }
-                c
-            }
-            Err(_) => {
-                return Ok(());
-            }
-        };
+    fn init(&mut self) {
+        let file_content = fs::read_to_string(&self.config.path).unwrap_or_default();
 
         // Get blocks of text separated by empty lines
         let blocks: Vec<_> = file_content
@@ -101,23 +82,27 @@ impl Repo {
 
         // Parse blocks of text into media items
         for block in blocks {
-            self.items.push(media::Media::from_db_entry(block)?);
+            self.items.push(media::Media::from_db_entry(block).unwrap());
         }
-
-        Ok(())
     }
 
     /// Write all items to file
     pub fn write(&self) -> Result<()> {
         // Create path if it doesn't exist
-        std::fs::create_dir_all(self.path.parent().unwrap())?;
+        std::fs::create_dir_all(self.config.path.parent().unwrap())?;
 
         let mut output = String::new();
         for entry in self.items.iter().map(media::Media::to_db_entry) {
             output += &entry;
             output += "\n\n";
         }
-        Ok(fs::write(&self.path, output.trim())?)
+        Ok(fs::write(&self.config.path, output.trim())?)
+    }
+}
+
+impl Default for Repo {
+    fn default() -> Self {
+        Self::new(Config::default())
     }
 }
 
@@ -156,8 +141,8 @@ year: 1984
         )
         .unwrap();
 
-        let mut repo = Repo::new(&path);
-        repo.read().unwrap();
+        let config = Config { path: path.clone() };
+        let repo = Repo::new(config);
 
         let media = repo.items.get(0).unwrap();
         assert_eq!(media.name, "Forrest Gump");
@@ -186,13 +171,24 @@ year: 1984
     }
 
     #[test]
+    fn reads_empty_file() {
+        let mut path = std::env::temp_dir();
+        path.push("mtracker_test_reads.txt");
+        fs::write(&path, "").unwrap();
+        let config = Config { path: path.clone() };
+        let repo = Repo::new(config);
+        assert!(repo.items.is_empty());
+        fs::remove_file(&path).ok();
+    }
+
+    #[test]
     fn writes() {
         let mut path = std::env::temp_dir();
         path.push("mtracker_test_writes.txt");
         fs::remove_file(&path).ok();
 
-        let mut repo = Repo::new(&path);
-        repo.read().unwrap();
+        let config = Config { path: path.clone() };
+        let mut repo = Repo::new(config);
         repo.add(media::Media::new("Forrest Gump", Some(1994)));
         repo.add(media::Media::new("Alien", Some(1979)));
 

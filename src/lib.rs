@@ -9,8 +9,8 @@ mod list;
 mod media;
 mod rate;
 mod remove;
-mod unrate;
 mod tags;
+mod unrate;
 
 #[allow(clippy::missing_errors_doc)]
 #[allow(clippy::missing_panics_doc)]
@@ -32,22 +32,15 @@ pub fn run() -> Result<()> {
         .subcommand(tags::command())
         .get_matches();
 
-    // Get database path
-    let mut db_file_path = dirs::data_dir().expect("failed to get user data directory");
-    db_file_path.push(format!("{}/db.txt", crate_name!()));
-
-    // Init media repo
-    let mut repo = media::repo::Repo::new(&db_file_path);
-
     // Run command
     match matches.subcommand() {
-        Some(("ls", matches)) => list::handle(&mut repo, matches),
-        Some(("add", matches)) => add::handle(&mut repo, matches),
-        Some(("rm", matches)) => remove::handle(&mut repo, matches),
-        Some(("rate", matches)) => rate::handle(&mut repo, matches),
-        Some(("unrate", matches)) => unrate::handle(&mut repo, matches),
-        Some(("edit", matches)) => edit::handle(&mut repo, matches),
-        Some(("tags", matches)) => tags::handle(&mut repo, matches),
+        Some(("ls", matches)) => list::handle(matches),
+        Some(("add", matches)) => add::handle(matches),
+        Some(("rm", matches)) => remove::handle(matches),
+        Some(("rate", matches)) => rate::handle(matches),
+        Some(("unrate", matches)) => unrate::handle(matches),
+        Some(("edit", matches)) => edit::handle(matches),
+        Some(("tags", matches)) => tags::handle(matches),
         _ => unreachable!(),
     }
 }

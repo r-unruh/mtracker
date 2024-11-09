@@ -9,8 +9,8 @@ pub fn command() -> Command {
         .arg_required_else_help(false)
 }
 
-pub fn handle(repo: &mut media::repo::Repo, _matches: &ArgMatches) -> Result<()> {
-    repo.read()?;
+pub fn handle(_matches: &ArgMatches) -> Result<()> {
+    let repo = media::repo::Repo::default();
 
     // Get list of tags (including duplicates)
     let tags = repo.get_all()
