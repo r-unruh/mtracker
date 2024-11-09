@@ -20,6 +20,13 @@ pub fn year() -> Arg {
         .help("Specify year of release")
 }
 
+pub fn term() -> Arg {
+    Arg::new("TERM")
+        .required(false)
+        .trailing_var_arg(true)
+        .num_args(0..)
+}
+
 pub fn tag() -> Arg {
     Arg::new("TAG")
         .required(false)

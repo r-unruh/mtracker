@@ -3,6 +3,13 @@ use clap::ArgMatches;
 
 use crate::media::handle;
 
+pub fn terms_from_matches(matches: &ArgMatches) -> Vec<&String> {
+    match matches.get_many::<String>("TERM") {
+        Some(t) => t.collect(),
+        None => vec![],
+    }
+}
+
 pub fn tags_from_matches(matches: &ArgMatches) -> Vec<&String> {
     match matches.get_many::<String>("TAG") {
         Some(t) => t.collect(),

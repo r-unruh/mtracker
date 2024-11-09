@@ -1,5 +1,5 @@
-use anyhow::{anyhow, Result};
-use clap::{Arg, ArgMatches, Command};
+use anyhow::Result;
+use clap::{ArgMatches, Command};
 
 use crate::arg_util;
 use crate::args;
@@ -10,35 +10,14 @@ pub fn command() -> Command {
         .visible_aliases(["list"])
         .about("List items")
         .arg_required_else_help(false)
-        .arg(args::tag().help("Tag(s) to search for, comma-separated"))
+        .arg(args::term().help("Terms to search for (tag, year)"))
         .arg(args::note_bool().help("Whether to display notes"))
         .arg(args::tags_bool().help("Whether to display tags"))
-        .arg(
-            Arg::new("YEAR")
-                .required(false)
-                .short('y')
-                .long("year")
-                .help("Specify year of release")
-                .long_help(
-                    "Year of release
-
-Valid operators: >, >=, <, <=
-
-If this argument is provided, all items without year numbers are ignored.
-
-Examples:
---year=2021        Items released in 2021
---year=2020-2022   Items released from 2020 to 2022
---year=\">2021\"     Items released from 2022 to 9999
---year=\">=2021\"    Items released from 2021 to 9999",
-                ),
-        )
 }
 
 pub fn handle(repo: &mut media::repo::Repo, matches: &ArgMatches) -> Result<()> {
     // Get args
-    let tags = arg_util::tags_from_matches(matches);
-    let year = matches.try_get_one::<String>("YEAR").unwrap_or(None);
+    let terms = arg_util::terms_from_matches(matches);
 
     // Init repo
     repo.read()?;
@@ -57,18 +36,20 @@ pub fn handle(repo: &mut media::repo::Repo, matches: &ArgMatches) -> Result<()> 
             .unwrap_or(0),
     };
 
-    // Filter by tags
-    if !tags.is_empty() {
-        items.retain(|i| tags.iter().all(|t| i.tags.contains(t)));
-    }
+    for t in &terms {
+        // Filter by year
+        if let Some(range) = try_parse_year_range(t) {
+            items.retain(|i| match i.year {
+                Some(y) => y >= range.0 && y <= range.1,
+                None => false,
+            });
+        }
 
-    // Filter by year
-    if let Some(y) = year {
-        let (min, max) = get_year_min_max(y)?;
-        items.retain(|i| match i.year {
-            Some(y) => y >= min && y <= max,
-            None => false,
-        });
+
+        // Filter by tags
+        else {
+            items.retain(|i| i.has_tag(t));
+        }
     }
 
     // Sort (watchlist, rating, unrated, alphabetic)
@@ -91,45 +72,46 @@ pub fn handle(repo: &mut media::repo::Repo, matches: &ArgMatches) -> Result<()> 
     Ok(())
 }
 
-fn get_year_min_max(input: &str) -> Result<(u16, u16)> {
-    match input.len() {
-        4 => {
-            let y = input.parse::<u16>()?;
-            Ok((y, y))
-        }
-        5 => {
-            let y = input[1..].parse::<u16>()?;
-            match &input[..1] {
-                "=" => Ok((y, y)),
-                ">" | "+" => Ok((y + 1, 9999)),
-                "<" | "-" => Ok((0, y - 1)),
-                _ => Err(anyhow!("invalid comparison symbol")),
-            }
-        }
-        6 => {
-            let y = input[2..].parse::<u16>()?;
-            match &input[..2] {
-                "==" => Ok((y, y)),
-                ">=" => Ok((y, 9999)),
-                "<=" => Ok((0, y)),
-                _ => Err(anyhow!("invalid comparison symbol")),
-            }
-        }
-        9 => {
-            let a = input[..4].parse::<u16>()?;
-            let b = input[5..].parse::<u16>()?;
-            if a <= b {
-                Ok((a, b))
-            } else {
-                Ok((b, a))
-            }
-        }
-        _ => Err(anyhow!("invalid year")),
-    }
-}
-
 fn get_weight(item: &media::Media) -> usize {
     item.rating.unwrap_or(0) as usize + 1 + if item.has_tag("watchlist") { 1000 } else { 0 }
+}
+
+pub fn try_parse_year_range(input: &str) -> Option<(u16, u16)> {
+    // 2024
+    if input.len() == 4 {
+        return match input.parse::<u16>() {
+            Ok(y) => Some((y, y)),
+            Err(_) => None
+        }
+    }
+
+    // -2024, 2024-
+    if input.len() == 5 {
+        if &input[..1] == "-" {
+            return match input[1..].parse::<u16>() {
+                Ok(y) => Some((0, y)),
+                Err(_) => None
+            }
+        } else if &input[4..] == "-" {
+            return match input[..4].parse::<u16>() {
+                Ok(y) => Some((y, 9999)),
+                Err(_) => None
+            }
+        }
+    }
+
+    // 2023-2024
+    if input.len() == 9 && &input[4..5] == "-" {
+        return match input[..4].parse::<u16>() {
+            Ok(from) => match input[5..].parse::<u16>() {
+                Ok(to) => if from <= to {Some((from, to))} else {None},
+                Err(_) => None
+            }
+            Err(_) => None
+        }
+    }
+
+    None
 }
 
 #[cfg(test)]
@@ -137,24 +119,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn year_min_max_works() {
+    fn try_parse_year_range_works() {
         // Valid input
-        assert_eq!(get_year_min_max("2023").unwrap(), (2023, 2023));
-        assert_eq!(get_year_min_max("2024").unwrap(), (2024, 2024));
-        assert_eq!(get_year_min_max("=2024").unwrap(), (2024, 2024));
-        assert_eq!(get_year_min_max("==2024").unwrap(), (2024, 2024));
-        assert_eq!(get_year_min_max(">=2020").unwrap(), (2020, 9999));
-        assert_eq!(get_year_min_max(">2020").unwrap(), (2021, 9999));
-        assert_eq!(get_year_min_max("+2020").unwrap(), (2021, 9999));
-        assert_eq!(get_year_min_max("<=2020").unwrap(), (0, 2020));
-        assert_eq!(get_year_min_max("<2020").unwrap(), (0, 2019));
-        assert_eq!(get_year_min_max("-2020").unwrap(), (0, 2019));
-        assert_eq!(get_year_min_max("2010-2020").unwrap(), (2010, 2020));
-        assert_eq!(get_year_min_max("2020-2010").unwrap(), (2010, 2020));
+        assert_eq!(try_parse_year_range("2023").unwrap(), (2023, 2023));
+        assert_eq!(try_parse_year_range("2024").unwrap(), (2024, 2024));
+        assert_eq!(try_parse_year_range("2020-").unwrap(), (2020, 9999));
+        assert_eq!(try_parse_year_range("-2020").unwrap(), (0, 2020));
+        assert_eq!(try_parse_year_range("1999-2010").unwrap(), (1999,2010));
 
         // Invalid input
-        assert!(get_year_min_max("invalid").is_err());
-        assert!(get_year_min_max("#2024").is_err());
-        assert!(get_year_min_max("20244").is_err());
+        assert!(try_parse_year_range("foob").is_none());
+        assert!(try_parse_year_range("-foob").is_none());
+        assert!(try_parse_year_range("#2024").is_none());
+        assert!(try_parse_year_range("20244").is_none());
+        assert!(try_parse_year_range("2020-2010").is_none());
     }
 }
