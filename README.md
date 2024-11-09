@@ -1,6 +1,6 @@
 # mtracker
 mtracker is a simple cli tool for Linux that lets you keep track of watched
-movies and series.
+movies and series. Or any other kind of media, like video games.
 
 * Designed to work well with standard Linux command line tools like grep.
 * Flat file system: All data is saved in a human-readable text file.
@@ -91,7 +91,11 @@ Whiplash
 rating: 10
 ```
 
-On Linux, the database file is automatically created and stored in `~/.local/share/mtracker/db.txt`. If any relevant XDG environment variables (e.g., `XDG_DATA_HOME`) are set, they will be respected, and the file will be stored according to the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/latest/).
+On Linux, the database file is automatically created and stored in
+`~/.local/share/mtracker/db.txt`. If any relevant XDG environment variables
+(e.g., `XDG_DATA_HOME`) are set, they will be respected, and the file will be
+stored according to the [XDG Base Directory
+Specification](https://specifications.freedesktop.org/basedir-spec/latest/).
 
 ## Features
 ### Ratings
@@ -166,5 +170,5 @@ Command                                               | Action
 `mtracker ls horror 2022-2024"`                       | List horror movies that were released between 2022 and 2024
 `mtracker add "Aliens (1986)" --tag=watchlist,horror` | Add new item with tags OR add tags to an existing item
 `mtracker rate "Aliens (1986)" 5`                     | Rate item a 5 (and remove from watchlist)
-`mtracker ls \| grep -i aliens`                       | Use grep to find entries
-`mtracker ls \| grep +++`                             | Use grep to search for items with a rating of at least 3
+`mtracker ls \| grep -i aliens`                       | Pipe to grep to find entries
+`mtracker ls \| grep +++`                             | Pipe to grep to search for items with a rating of at least 3
