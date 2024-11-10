@@ -86,7 +86,7 @@ impl Repo {
     }
 
     /// Read all items from file into memory
-    pub fn read(&mut self) -> Result<()> {
+    fn read(&mut self) -> Result<()> {
         self.initialized = true;
         let file_content = fs::read_to_string(&self.path).unwrap_or_default();
 
