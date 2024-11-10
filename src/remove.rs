@@ -20,9 +20,6 @@ pub fn handle(repo: &mut repo::Repo, matches: &ArgMatches) -> Result<()> {
     let handle = arg_util::handle_from_matches(matches)?.unwrap();
     let tags = arg_util::tags_from_matches(matches);
 
-    // Init repo
-    repo.read()?;
-
     // Remove item
     if tags.is_empty() {
         repo.remove_by_handle(&handle)?;

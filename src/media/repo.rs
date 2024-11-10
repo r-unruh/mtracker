@@ -88,24 +88,13 @@ impl Repo {
     /// Read all items from file into memory
     pub fn read(&mut self) -> Result<()> {
         self.initialized = true;
-        let file_content = match fs::read_to_string(&self.path) {
-            Ok(c) => {
-                if c.is_empty() {
-                    return Ok(());
-                }
-                c
-            }
-            Err(_) => {
-                return Ok(());
-            }
-        };
+        let file_content = fs::read_to_string(&self.path).unwrap_or_default();
 
         // Get blocks of text separated by empty lines
-        let blocks: Vec<_> = file_content
+        let blocks = file_content
             .split("\n\n")
             .filter(|b| !b.is_empty())
-            .map(str::trim)
-            .collect();
+            .map(str::trim);
 
         // Parse blocks of text into media items
         for block in blocks {
@@ -196,10 +185,8 @@ year: 1984
         repo.add(media::Media::new("Alien", Some(1979))).ok();
         repo.write().unwrap();
 
-        let body = fs::read_to_string(&path).unwrap();
-
         assert_eq!(
-            body,
+            fs::read_to_string(&path).unwrap(),
             "Forrest Gump
 year: 1994
 

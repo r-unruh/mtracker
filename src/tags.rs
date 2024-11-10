@@ -13,8 +13,7 @@ pub fn handle(repo: &mut media::repo::Repo, _matches: &ArgMatches) -> Result<()>
     // Get list of tags (including duplicates)
     let tags = repo.get_all()?
         .into_iter()
-        .map(|i| i.tags.clone())
-        .flatten();
+        .flat_map(|i| i.tags.clone());
 
     // Count tags
     let mut map = HashMap::new();
