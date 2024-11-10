@@ -22,18 +22,15 @@ pub fn handle(repo: &mut repo::Repo, matches: &ArgMatches) -> Result<()> {
     let tags = arg_util::tags_from_matches(matches);
     let note = arg_util::note_from_matches(matches)?;
 
-    // Init repo
-    repo.read()?;
-
     // Report error when just adding an existing item
-    let media = repo.get(&handle);
+    let media = repo.get(&handle)?;
     if media.is_some() && tags.is_empty() {
         return Err(anyhow!("item already exists: {handle}"));
     }
 
     let media = match media {
         Some(m) => m,
-        None => repo.get_or_create(&handle),
+        None => repo.get_or_create(&handle)?,
     };
 
     // Add tags

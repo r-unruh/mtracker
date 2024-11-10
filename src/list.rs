@@ -19,10 +19,7 @@ pub fn handle(repo: &mut media::repo::Repo, matches: &ArgMatches) -> Result<()> 
     // Get args
     let terms = arg_util::terms_from_matches(matches);
 
-    // Init repo
-    repo.read()?;
-
-    let mut items = repo.get_all();
+    let mut items = repo.get_all()?;
 
     let options = media::format::ListOptions {
         note: *matches.get_one::<bool>("NOTE").unwrap_or(&false),

@@ -10,10 +10,8 @@ pub fn command() -> Command {
 }
 
 pub fn handle(repo: &mut media::repo::Repo, _matches: &ArgMatches) -> Result<()> {
-    repo.read()?;
-
     // Get list of tags (including duplicates)
-    let tags = repo.get_all()
+    let tags = repo.get_all()?
         .into_iter()
         .map(|i| i.tags.clone())
         .flatten();

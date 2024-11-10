@@ -24,11 +24,8 @@ pub fn handle(repo: &mut repo::Repo, matches: &ArgMatches) -> Result<()> {
 }
 
 fn edit_db_entry(repo: &mut repo::Repo, handle: &handle::Handle) -> Result<()> {
-    // Init repo
-    repo.read()?;
-
     // Find media
-    let Some(item) = repo.get(handle) else {
+    let Some(item) = repo.get(handle)? else {
         return Err(anyhow!("item not found: {handle}"));
     };
 
@@ -47,7 +44,7 @@ fn edit_db_entry(repo: &mut repo::Repo, handle: &handle::Handle) -> Result<()> {
 
     // Replace old item with new item
     repo.remove_by_handle(handle)?;
-    repo.add(new_item);
+    repo.add(new_item)?;
     repo.write()?;
 
     println!("Updated item: {handle}");

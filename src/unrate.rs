@@ -18,10 +18,7 @@ pub fn handle(repo: &mut repo::Repo, matches: &ArgMatches) -> Result<()> {
     // Get args
     let handle = arg_util::handle_from_matches(matches)?.unwrap();
 
-    // Init repo
-    repo.read()?;
-
-    let media = repo.get_or_create(&handle);
+    let media = repo.get_or_create(&handle)?;
 
     media.rating = None;
     println!("Removed rating from: {handle}");

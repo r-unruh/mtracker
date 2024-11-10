@@ -4,11 +4,9 @@ extern crate dirs;
 
 use crate::media;
 
-const NOT_INITIALIZED: &str = "Repo not initialized";
-
 pub struct Repo {
     pub path: path::PathBuf,
-    pub items: Vec<media::Media>,
+    items: Vec<media::Media>,
     initialized: bool,
 }
 
@@ -21,26 +19,29 @@ impl Repo {
         }
     }
 
-    pub fn get(&mut self, handle: &media::handle::Handle) -> Option<&mut media::Media> {
-        assert!(self.initialized, "{NOT_INITIALIZED}");
-        self.items.iter_mut().find(|m| m.matches_handle(handle))
+    pub fn get(&mut self, handle: &media::handle::Handle) -> Result<Option<&mut media::Media>> {
+        if !self.initialized {
+            self.read()?;
+        }
+
+        Ok(self.items.iter_mut().find(|m| m.matches_handle(handle)))
     }
 
-    #[allow(clippy::missing_panics_doc)]
-    pub fn get_or_create(&mut self, handle: &media::handle::Handle) -> &mut media::Media {
-        // Media gets created here..
-        if self.get(handle).is_none() {
-            self.add(media::Media::from_handle(handle));
+    pub fn get_or_create(&mut self, handle: &media::handle::Handle) -> Result<&mut media::Media> {
+        if self.get(handle)?.is_none() {
+            self.add(media::Media::from_handle(handle))?;
             println!("Added new item: {handle}");
         }
 
-        // ..so this can't fail
-        self.get(handle).unwrap()
+        Ok(self.get(handle)?.unwrap())
     }
 
-    pub fn get_all(&self) -> Vec<&media::Media> {
-        assert!(self.initialized, "{NOT_INITIALIZED}");
-        self.items.iter().collect()
+    pub fn get_all(&mut self) -> Result<Vec<&media::Media>> {
+        if !self.initialized {
+            self.read()?;
+        }
+
+        Ok(self.items.iter().collect())
     }
 
     pub fn update(
@@ -48,8 +49,11 @@ impl Repo {
         handle: &media::handle::Handle,
         f: impl FnOnce(&mut media::Media),
     ) -> Result<()> {
-        assert!(self.initialized, "{NOT_INITIALIZED}");
-        match self.get(handle) {
+        if !self.initialized {
+            self.read()?;
+        }
+
+        match self.get(handle)? {
             Some(item) => {
                 f(item);
                 Ok(())
@@ -58,16 +62,20 @@ impl Repo {
         }
     }
 
-    pub fn add(&mut self, item: media::Media) {
-        assert!(self.initialized, "{NOT_INITIALIZED}");
+    pub fn add(&mut self, item: media::Media) -> Result<()> {
+        if !self.initialized {
+            self.read()?;
+        }
+
         self.items.push(item);
+        Ok(())
     }
 
-    pub fn remove_by_handle(
-        &mut self,
-        handle: &media::handle::Handle,
-    ) -> Result<()> {
-        assert!(self.initialized, "{NOT_INITIALIZED}");
+    pub fn remove_by_handle(&mut self, handle: &media::handle::Handle) -> Result<()> {
+        if !self.initialized {
+            self.read()?;
+        }
+
         match self.items.iter().position(|m| m.matches_handle(handle)) {
             Some(index) => {
                 self.items.swap_remove(index);
@@ -157,30 +165,22 @@ year: 1984
         .unwrap();
 
         let mut repo = Repo::new(&path);
-        repo.read().unwrap();
+        let items = repo.get_all().unwrap();
 
-        let media = repo.items.get(0).unwrap();
-        assert_eq!(media.name, "Forrest Gump");
-        assert_eq!(media.year, Some(1994));
+        assert_eq!(items[0].name, "Forrest Gump");
+        assert_eq!(items[0].year, Some(1994));
 
-        let media = repo.items.get(1).unwrap();
-        assert_eq!(media.name, "Alien");
-        assert_eq!(media.year, Some(1979));
+        assert_eq!(items[1].name, "Alien");
+        assert_eq!(items[1].year, Some(1979));
 
-        let media = repo.items.get(2).unwrap();
-        assert_eq!(media.name, "Aliens");
-        assert_eq!(media.year, Some(1986));
+        assert_eq!(items[2].name, "Aliens");
+        assert_eq!(items[2].year, Some(1986));
 
-        let media = repo.items.get(3).unwrap();
-        assert_eq!(media.name, "Alien 3");
-        assert_eq!(media.year, Some(1992));
+        assert_eq!(items[3].name, "Alien 3");
+        assert_eq!(items[3].year, Some(1992));
 
-        let media = repo.items.get(4).unwrap();
-        assert_eq!(media.name, "The Terminator");
-        assert_eq!(media.year, Some(1984));
-
-        let media = repo.items.get(5);
-        assert_eq!(media, None);
+        assert_eq!(items[4].name, "The Terminator");
+        assert_eq!(items[4].year, Some(1984));
 
         fs::remove_file(&path).ok();
     }
@@ -192,10 +192,8 @@ year: 1984
         fs::remove_file(&path).ok();
 
         let mut repo = Repo::new(&path);
-        repo.read().unwrap();
-        repo.add(media::Media::new("Forrest Gump", Some(1994)));
-        repo.add(media::Media::new("Alien", Some(1979)));
-
+        repo.add(media::Media::new("Forrest Gump", Some(1994))).ok();
+        repo.add(media::Media::new("Alien", Some(1979))).ok();
         repo.write().unwrap();
 
         let body = fs::read_to_string(&path).unwrap();

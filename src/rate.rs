@@ -25,10 +25,7 @@ pub fn handle(repo: &mut repo::Repo, matches: &ArgMatches) -> Result<()> {
     let handle = arg_util::handle_from_matches(matches)?.unwrap();
     let rating = matches.get_one::<u8>("RATING");
 
-    // Init repo
-    repo.read()?;
-
-    let media = repo.get_or_create(&handle);
+    let media = repo.get_or_create(&handle)?;
 
     media.rating = rating.copied();
     println!("Rated {handle}: {}", rating.unwrap());
