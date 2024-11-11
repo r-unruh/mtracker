@@ -51,11 +51,12 @@ _mtracker() {
                     ;;
                 (unrate|u)
                     local -a rated_movies
-                    rated_movies=("${(@f)$(mtracker ls | grep -Ev "^\?" | sed -E "s/^\S+\s(WL:\s)?//")}")
+                    rated_movies=("${(@f)$(mtracker ls rated | sed -E "s/^\S+\s(WL:\s)?//")}")
                     _arguments '1:movie ID:(${rated_movies})'
                     ;;
                 (list|ls)
-                    _arguments '--tag[show only movies with the specified tags]' '--year[show movies matching the year query]'
+                    local tags=("${(@f)$(mtracker tags)}")
+                    _arguments '*:tag:(${tags})'
                     ;;
             esac
             ;;

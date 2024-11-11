@@ -38,11 +38,13 @@ _mtracker() {
             ;;
         unrate|u)
             local rated_movies IFS=$'\n'
-            rated_movies=$(mtracker ls | grep -Ev "^\?" | sed -E "s/^\S+\s(WL:\s)?//")
+            rated_movies=$(mtracker ls rated | sed -E "s/^\S+\s(WL:\s)?//")
             COMPREPLY=( $(compgen -W "$rated_movies" -- "$cur") )
             ;;
         list|ls)
-            COMPREPLY=( $(compgen -W "--tag --year" -- "$cur") )
+            local tags IFS=$'\n'
+            tags=$(mtracker tags)
+            COMPREPLY=( $(compgen -W "$tags" -- "$cur") )
             ;;
     esac
 
