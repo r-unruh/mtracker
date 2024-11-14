@@ -15,17 +15,19 @@ pub fn command() -> Command {
         .arg_required_else_help(false)
 }
 
-pub fn handle(repo: &mut repo::Repo, matches: &ArgMatches) -> Result<()> {
+pub fn handle(matches: &ArgMatches) -> Result<()> {
+    let mut repo = arg_util::repo_from_matches(matches)?;
+
     if let Some(handle) = arg_util::handle_from_matches(matches)? {
-        edit_db_entry(repo, &handle)
+        edit_db_entry(&mut repo, &handle)
     } else {
-        edit_db(repo)
+        edit_db(&mut repo)
     }
 }
 
 fn edit_db_entry(repo: &mut repo::Repo, handle: &handle::Handle) -> Result<()> {
     // Find media
-    let Some(item) = repo.get(handle)? else {
+    let Some(item) = repo.get(handle) else {
         return Err(anyhow!("item not found: {handle}"));
     };
 

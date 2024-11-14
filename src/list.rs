@@ -15,11 +15,9 @@ pub fn command() -> Command {
         .arg(args::tags_bool().help("Whether to display tags"))
 }
 
-pub fn handle(repo: &mut media::repo::Repo, matches: &ArgMatches) -> Result<()> {
-    // Get args
-    let terms = arg_util::terms_from_matches(matches);
-
-    let mut items = repo.get_all()?;
+pub fn handle(matches: &ArgMatches) -> Result<()> {
+    let repo = arg_util::repo_from_matches(matches)?;
+    let mut items = repo.get_all();
 
     let options = media::format::ListOptions {
         note: *matches.get_one::<bool>("NOTE").unwrap_or(&false),
@@ -33,7 +31,7 @@ pub fn handle(repo: &mut media::repo::Repo, matches: &ArgMatches) -> Result<()> 
             .unwrap_or(0),
     };
 
-    for t in &terms {
+    for t in arg_util::terms_from_matches(matches) {
         // Filter by year
         if let Some(range) = try_parse_year_range(t) {
             items.retain(|i| match i.year {

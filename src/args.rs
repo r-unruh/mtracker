@@ -1,4 +1,4 @@
-use clap::Arg;
+use clap::{Arg, crate_name};
 
 pub fn identifier() -> Arg {
     Arg::new("IDENTIFIER")
@@ -25,6 +25,19 @@ pub fn term() -> Arg {
         .required(false)
         .trailing_var_arg(true)
         .num_args(0..)
+}
+
+pub fn db() -> Arg {
+    // Get default db path
+    let mut path = dirs::data_dir().expect("failed to get user data directory");
+    path.push(format!("{}/db.txt", crate_name!()));
+
+    Arg::new("DB")
+        .required(false)
+        .long("db")
+        .help("Database file")
+        .global(true)
+        .default_value(path.into_os_string())
 }
 
 pub fn tag() -> Arg {

@@ -1,7 +1,8 @@
-use crate::media;
 use anyhow::Result;
 use clap::{ArgMatches, Command};
 use std::collections::HashMap;
+
+use crate::arg_util;
 
 pub fn command() -> Command {
     Command::new("tags")
@@ -9,11 +10,11 @@ pub fn command() -> Command {
         .arg_required_else_help(false)
 }
 
-pub fn handle(repo: &mut media::repo::Repo, _matches: &ArgMatches) -> Result<()> {
+pub fn handle(matches: &ArgMatches) -> Result<()> {
+    let repo = arg_util::repo_from_matches(matches)?;
+
     // Get list of tags (including duplicates)
-    let tags = repo.get_all()?
-        .into_iter()
-        .flat_map(|i| i.tags.clone());
+    let tags = repo.get_all().into_iter().flat_map(|i| i.tags.clone());
 
     // Count tags
     let mut map = HashMap::new();
@@ -25,6 +26,7 @@ pub fn handle(repo: &mut media::repo::Repo, _matches: &ArgMatches) -> Result<()>
     let mut tags: Vec<_> = map.iter().collect();
     tags.sort_by(|a, b| b.1.cmp(a.1));
 
+    // Output tags
     for t in tags.into_iter().map(|i| i.0) {
         println!("{}", t);
     }

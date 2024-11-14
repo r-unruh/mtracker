@@ -1,13 +1,19 @@
 use anyhow::{anyhow, Result};
 use clap::ArgMatches;
+use std::path::PathBuf;
 
-use crate::media::handle;
+use crate::media::{handle, repo};
 
 pub fn terms_from_matches(matches: &ArgMatches) -> Vec<&String> {
     match matches.get_many::<String>("TERM") {
         Some(t) => t.collect(),
         None => vec![],
     }
+}
+
+pub fn repo_from_matches(matches: &ArgMatches) -> Result<repo::Repo> {
+    let path = PathBuf::from(matches.get_one::<String>("DB").unwrap());
+    repo::Repo::new(&path)
 }
 
 pub fn tags_from_matches(matches: &ArgMatches) -> Vec<&String> {

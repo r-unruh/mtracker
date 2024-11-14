@@ -3,7 +3,6 @@ use clap::{ArgMatches, Command};
 
 use crate::arg_util;
 use crate::args;
-use crate::media::repo;
 
 pub fn command() -> Command {
     Command::new("add")
@@ -16,14 +15,14 @@ pub fn command() -> Command {
         .arg(args::note())
 }
 
-pub fn handle(repo: &mut repo::Repo, matches: &ArgMatches) -> Result<()> {
-    // Get args
+pub fn handle(matches: &ArgMatches) -> Result<()> {
+    let mut repo = arg_util::repo_from_matches(matches)?;
     let handle = arg_util::handle_from_matches(matches)?.unwrap();
     let tags = arg_util::tags_from_matches(matches);
     let note = arg_util::note_from_matches(matches)?;
 
     // Report error when just adding an existing item
-    let media = repo.get(&handle)?;
+    let media = repo.get(&handle);
     if media.is_some() && tags.is_empty() {
         return Err(anyhow!("item already exists: {handle}"));
     }

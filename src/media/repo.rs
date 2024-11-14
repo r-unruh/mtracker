@@ -7,41 +7,33 @@ use crate::media;
 pub struct Repo {
     pub path: path::PathBuf,
     items: Vec<media::Media>,
-    initialized: bool,
 }
 
 impl Repo {
-    pub fn new(path: &path::Path) -> Self {
-        Repo {
+    pub fn new(path: &path::Path) -> Result<Self> {
+        let mut repo = Repo {
             path: path.to_path_buf(),
             items: vec![],
-            initialized: false,
-        }
+        };
+        repo.read()?;
+        Ok(repo)
     }
 
-    pub fn get(&mut self, handle: &media::handle::Handle) -> Result<Option<&mut media::Media>> {
-        if !self.initialized {
-            self.read()?;
-        }
-
-        Ok(self.items.iter_mut().find(|m| m.matches_handle(handle)))
+    pub fn get(&mut self, handle: &media::handle::Handle) -> Option<&mut media::Media> {
+        self.items.iter_mut().find(|m| m.matches_handle(handle))
     }
 
     pub fn get_or_create(&mut self, handle: &media::handle::Handle) -> Result<&mut media::Media> {
-        if self.get(handle)?.is_none() {
+        if self.get(handle).is_none() {
             self.add(media::Media::from_handle(handle))?;
             println!("Added new item: {handle}");
         }
 
-        Ok(self.get(handle)?.unwrap())
+        Ok(self.get(handle).unwrap())
     }
 
-    pub fn get_all(&mut self) -> Result<Vec<&media::Media>> {
-        if !self.initialized {
-            self.read()?;
-        }
-
-        Ok(self.items.iter().collect())
+    pub fn get_all(&self) -> Vec<&media::Media> {
+        self.items.iter().collect()
     }
 
     pub fn update(
@@ -49,11 +41,7 @@ impl Repo {
         handle: &media::handle::Handle,
         f: impl FnOnce(&mut media::Media),
     ) -> Result<()> {
-        if !self.initialized {
-            self.read()?;
-        }
-
-        match self.get(handle)? {
+        match self.get(handle) {
             Some(item) => {
                 f(item);
                 Ok(())
@@ -63,19 +51,11 @@ impl Repo {
     }
 
     pub fn add(&mut self, item: media::Media) -> Result<()> {
-        if !self.initialized {
-            self.read()?;
-        }
-
         self.items.push(item);
         Ok(())
     }
 
     pub fn remove_by_handle(&mut self, handle: &media::handle::Handle) -> Result<()> {
-        if !self.initialized {
-            self.read()?;
-        }
-
         match self.items.iter().position(|m| m.matches_handle(handle)) {
             Some(index) => {
                 self.items.swap_remove(index);
@@ -85,9 +65,8 @@ impl Repo {
         }
     }
 
-    /// Read all items from file into memory
+    // Read all items from file into memory
     fn read(&mut self) -> Result<()> {
-        self.initialized = true;
         let file_content = fs::read_to_string(&self.path).unwrap_or_default();
 
         // Get blocks of text separated by empty lines
@@ -153,8 +132,8 @@ year: 1984
         )
         .unwrap();
 
-        let mut repo = Repo::new(&path);
-        let items = repo.get_all().unwrap();
+        let repo = Repo::new(&path).unwrap();
+        let items = repo.get_all();
 
         assert_eq!(items[0].name, "Forrest Gump");
         assert_eq!(items[0].year, Some(1994));
@@ -180,7 +159,7 @@ year: 1984
         path.push("mtracker_test_writes.txt");
         fs::remove_file(&path).ok();
 
-        let mut repo = Repo::new(&path);
+        let mut repo = Repo::new(&path).unwrap();
         repo.add(media::Media::new("Forrest Gump", Some(1994))).ok();
         repo.add(media::Media::new("Alien", Some(1979))).ok();
         repo.write().unwrap();

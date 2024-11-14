@@ -3,7 +3,6 @@ use clap::{ArgMatches, Command};
 
 use crate::arg_util;
 use crate::args;
-use crate::media::repo;
 
 pub fn command() -> Command {
     Command::new("rm")
@@ -15,8 +14,8 @@ pub fn command() -> Command {
         .arg(args::tag().help("Tag(s) to remove, comma-separated"))
 }
 
-pub fn handle(repo: &mut repo::Repo, matches: &ArgMatches) -> Result<()> {
-    // Get args
+pub fn handle(matches: &ArgMatches) -> Result<()> {
+    let mut repo = arg_util::repo_from_matches(matches)?;
     let handle = arg_util::handle_from_matches(matches)?.unwrap();
     let tags = arg_util::tags_from_matches(matches);
 

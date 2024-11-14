@@ -3,7 +3,6 @@ use clap::{Arg, ArgMatches, Command};
 
 use crate::arg_util;
 use crate::args;
-use crate::media::repo;
 
 pub fn command() -> Command {
     Command::new("rate")
@@ -20,8 +19,8 @@ pub fn command() -> Command {
         .arg(args::year())
 }
 
-pub fn handle(repo: &mut repo::Repo, matches: &ArgMatches) -> Result<()> {
-    // Get args
+pub fn handle(matches: &ArgMatches) -> Result<()> {
+    let mut repo = arg_util::repo_from_matches(matches)?;
     let handle = arg_util::handle_from_matches(matches)?.unwrap();
     let rating = matches.get_one::<u8>("RATING");
 
