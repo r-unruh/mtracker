@@ -22,7 +22,7 @@ _mtracker() {
                 COMPREPLY=( $(compgen -W "--tag" -- "$cur") )
             fi
             ;;
-        remove|rm)
+        remove|rm|edit)
             local movies IFS=$'\n'
             movies=$(mtracker ls | sed -E "s/^\S+\s(WL:\s)?//")
             COMPREPLY=( $(compgen -W "$movies" -- "$cur") )

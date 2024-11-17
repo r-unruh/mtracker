@@ -36,7 +36,7 @@ _mtracker() {
                         '1:movie name:_values "movie" "${movies[@]}"' \
                         '--tag[add tags to a movie, either tracked or untracked]'
                     ;;
-                (remove|rm)
+                (remove|rm|edit)
                     local -a movies
                     movies=("${(@f)$(mtracker ls | sed -E "s/^\S+\s(WL:\s)?//")}")
                     _arguments '1:movie ID:(${movies})'
