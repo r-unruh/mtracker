@@ -41,9 +41,9 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
         }
 
         // Filter by special terms
-        else if t == &"rated" {
+        else if t == "rated" {
             items.retain(|i| i.rating.is_some());
-        } else if t == &"unrated" {
+        } else if t == "unrated" {
             items.retain(|i| i.rating.is_none());
         }
 
