@@ -199,7 +199,7 @@ name value";
             rating: Some(2),
             tags: vec!["drama".into(), "romance".into()],
             note: "very long".into(),
-            last_seen: chrono::NaiveDate::from_ymd_opt(2024, 06, 12),
+            last_seen: chrono::NaiveDate::from_ymd_opt(2024, 6, 12),
         };
 
         let expected = "Forrest Gump

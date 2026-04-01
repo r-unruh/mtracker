@@ -43,9 +43,9 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
     }
 
     // Add note
-    if note.is_some() {
+    if let Some(n) = note {
         if media.note.is_empty() {
-            media.note = note.unwrap();
+            media.note = n;
             println!("Added note to {handle}: {}", media.note);
         } else {
             return Err(anyhow!(

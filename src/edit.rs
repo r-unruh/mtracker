@@ -1,14 +1,12 @@
 use anyhow::{anyhow, Result};
 use clap::{ArgMatches, Command};
-use std::io::{Read, Write};
-
 use crate::arg_util;
 use crate::args;
 use crate::media::{handle, repo, Media};
 
 pub fn command() -> Command {
     clap::Command::new("edit")
-        .aliases(["e"])
+        .visible_aliases(["e"])
         .about("Edit item or whole database with the default editor")
         .arg(args::identifier().required(false))
         .arg(args::year())
@@ -55,19 +53,10 @@ fn edit_db_entry(repo: &mut repo::Repo, handle: &handle::Handle) -> Result<()> {
 
 fn edit_db(repo: &mut repo::Repo) -> Result<()> {
     // Get original db
-    let original_db = match std::fs::read_to_string(&repo.path) {
-        Ok(content) => content,
-        Err(_) => String::new(),
-    };
+    let original_db = std::fs::read_to_string(&repo.path).unwrap_or_default();
 
-    // Copy original db to tempfile
-    let mut tmp_file = tempfile::NamedTempFile::new().unwrap();
-    tmp_file.write_all(original_db.as_bytes())?;
-
-    // Edit new db
-    let mut new_db = String::new();
-    tmp_file.reopen()?.read_to_string(&mut new_db)?;
-    new_db = edit::edit(new_db)?;
+    // Edit db
+    let new_db = edit::edit(&original_db)?;
 
     // No changes, abort
     if new_db == original_db {

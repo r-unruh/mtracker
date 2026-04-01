@@ -1,6 +1,5 @@
 use anyhow::{anyhow, Result};
 use std::{fs, path};
-extern crate dirs;
 
 use crate::media;
 

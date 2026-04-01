@@ -1,5 +1,8 @@
 use regex::Regex;
-use std::convert::Into;
+use std::sync::LazyLock;
+
+static HANDLE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(.+)\s\((\d{4})\)$").unwrap());
 
 pub struct Handle {
     pub name: String,
@@ -7,12 +10,8 @@ pub struct Handle {
 }
 
 impl Handle {
-    #[allow(clippy::missing_panics_doc)]
     pub fn from_user_input(input: impl Into<String> + Copy) -> Self {
-        match Regex::new(r"^(.+)\s\((\d{4})\)$")
-            .unwrap()
-            .captures(&input.into())
-        {
+        match HANDLE_RE.captures(&input.into()) {
             Some(caps) => Handle {
                 name: caps.get(1).unwrap().as_str().into(),
                 year: caps.get(2).unwrap().as_str().parse::<u16>().ok(),

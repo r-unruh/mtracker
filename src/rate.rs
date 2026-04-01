@@ -13,7 +13,7 @@ pub fn command() -> Command {
         .arg(
             Arg::new("RATING")
                 .required(true)
-                .value_parser(clap::value_parser!(u8).range(0..=255))
+                .value_parser(clap::value_parser!(u8))
                 .help("Rating (number)"),
         )
         .arg(args::year())

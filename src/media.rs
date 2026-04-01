@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Result};
-use std::convert::Into;
 
 pub mod format;
 pub mod handle;
