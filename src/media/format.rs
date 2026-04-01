@@ -50,3 +50,69 @@ impl media::Media {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::media::Media;
+
+    fn opts(max_rating: u8, note: bool, tags: bool) -> ListOptions {
+        ListOptions { max_rating, note, tags }
+    }
+
+    fn setup() {
+        colored::control::set_override(false);
+    }
+
+    #[test]
+    fn as_line_basic() {
+        setup();
+        let m = Media::new("Alien", Some(1979));
+        let line = m.as_line(&opts(0, false, false));
+        assert_eq!(line, "Alien (1979)");
+    }
+
+    #[test]
+    fn as_line_with_note() {
+        setup();
+        let mut m = Media::new("Alien", None);
+        m.note = "classic".into();
+        let line = m.as_line(&opts(0, true, false));
+        assert_eq!(line, "Alien: classic");
+    }
+
+    #[test]
+    fn as_line_with_tags() {
+        setup();
+        let mut m = Media::new("Alien", None);
+        m.tags = vec!["horror".into(), "sci-fi".into()];
+        let line = m.as_line(&opts(0, false, true));
+        assert_eq!(line, "Alien [horror, sci-fi]");
+    }
+
+    #[test]
+    fn as_line_with_rating() {
+        setup();
+        let mut m = Media::new("Alien", None);
+        m.rating = Some(3);
+        let line = m.as_line(&opts(5, false, false));
+        assert_eq!(line, "+++-- Alien");
+    }
+
+    #[test]
+    fn as_line_unrated_with_max_rating() {
+        setup();
+        let m = Media::new("Alien", None);
+        let line = m.as_line(&opts(3, false, false));
+        assert_eq!(line, "??? Alien");
+    }
+
+    #[test]
+    fn as_line_watchlist() {
+        setup();
+        let mut m = Media::new("Alien", None);
+        m.tags = vec!["watchlist".into()];
+        let line = m.as_line(&opts(0, false, false));
+        assert_eq!(line, "WL: Alien");
+    }
+}

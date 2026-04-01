@@ -59,3 +59,57 @@ impl Media {
         self.tags.iter().any(|t| t == tag)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn add_tag() {
+        let mut m = Media::new("Test", None);
+        m.add_tag("horror");
+        assert_eq!(m.tags, vec!["horror"]);
+    }
+
+    #[test]
+    fn add_tag_prevents_duplicates() {
+        let mut m = Media::new("Test", None);
+        m.add_tag("horror");
+        m.add_tag("horror");
+        assert_eq!(m.tags, vec!["horror"]);
+    }
+
+    #[test]
+    fn remove_tag() {
+        let mut m = Media::new("Test", None);
+        m.add_tag("horror");
+        m.remove_tag("horror").unwrap();
+        assert!(m.tags.is_empty());
+    }
+
+    #[test]
+    fn remove_tag_not_found() {
+        let mut m = Media::new("Test", None);
+        assert!(m.remove_tag("horror").is_err());
+    }
+
+    #[test]
+    fn matches_handle() {
+        let m = Media::new("Alien", Some(1979));
+        let h1 = handle::Handle::from_user_input("Alien (1979)");
+        let h2 = handle::Handle::from_user_input("Alien");
+        let h3 = handle::Handle::from_user_input("Aliens (1986)");
+        assert!(m.matches_handle(&h1));
+        assert!(!m.matches_handle(&h2));
+        assert!(!m.matches_handle(&h3));
+    }
+
+    #[test]
+    fn matches_handle_without_year() {
+        let m = Media::new("Alien", None);
+        let h1 = handle::Handle::from_user_input("Alien");
+        let h2 = handle::Handle::from_user_input("Alien (1979)");
+        assert!(m.matches_handle(&h1));
+        assert!(!m.matches_handle(&h2));
+    }
+}
