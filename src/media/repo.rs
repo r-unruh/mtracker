@@ -1,5 +1,6 @@
-use anyhow::{anyhow, Result};
 use std::{fs, path};
+
+use anyhow::{anyhow, Result};
 
 use crate::media;
 
@@ -69,10 +70,7 @@ impl Repo {
         let file_content = fs::read_to_string(&self.path).unwrap_or_default();
 
         // Get blocks of text separated by empty lines
-        let blocks = file_content
-            .split("\n\n")
-            .filter(|b| !b.is_empty())
-            .map(str::trim);
+        let blocks = file_content.split("\n\n").filter(|b| !b.is_empty()).map(str::trim);
 
         // Parse blocks of text into media items
         for block in blocks {

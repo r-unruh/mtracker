@@ -1,8 +1,7 @@
 use anyhow::Result;
 use clap::{ArgMatches, Command};
 
-use crate::arg_util;
-use crate::args;
+use crate::{arg_util, args};
 
 pub fn command() -> Command {
     Command::new("unrate")

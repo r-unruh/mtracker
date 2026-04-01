@@ -1,6 +1,7 @@
+use std::collections::HashMap;
+
 use anyhow::Result;
 use clap::{ArgMatches, Command};
-use std::collections::HashMap;
 
 use crate::arg_util;
 

@@ -15,7 +15,8 @@ pub struct Media {
     pub last_seen: Option<chrono::NaiveDate>,
 }
 
-/// Media is identified by its name + year ("name (year)") OR just its name if year is not given
+/// Media is identified by its name + year ("name (year)") OR just its name if
+/// year is not given
 impl Media {
     pub fn new(name: impl Into<String>, year: Option<u16>) -> Self {
         Media {

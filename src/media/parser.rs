@@ -17,9 +17,7 @@ where
 fn parse_last_seen(input: &str) -> Result<Option<chrono::NaiveDate>> {
     match chrono::NaiveDate::parse_from_str(input, "%Y-%m-%d") {
         Ok(date) => Ok(Some(date)),
-        Err(e) => Err(anyhow!(
-            "failed to parse last_seen: {e}\nExpected format: 2024-12-31"
-        )),
+        Err(e) => Err(anyhow!("failed to parse last_seen: {e}\nExpected format: 2024-12-31")),
     }
 }
 
@@ -128,10 +126,7 @@ note:very long";
         assert_eq!(media.year, Some(1994));
         assert_eq!(media.rating, Some(2));
         assert_eq!(media.note, "very long");
-        assert_eq!(
-            media.last_seen,
-            chrono::NaiveDate::from_ymd_opt(2020, 12, 31)
-        );
+        assert_eq!(media.last_seen, chrono::NaiveDate::from_ymd_opt(2020, 12, 31));
         assert_eq!(media.tags, vec!["drama", "romance", "funny"]);
 
         // Bad entry, but technically valid

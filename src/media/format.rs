@@ -57,7 +57,11 @@ mod tests {
     use crate::media::Media;
 
     fn opts(max_rating: u8, note: bool, tags: bool) -> ListOptions {
-        ListOptions { max_rating, note, tags }
+        ListOptions {
+            max_rating,
+            note,
+            tags,
+        }
     }
 
     fn setup() {

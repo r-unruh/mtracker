@@ -1,6 +1,7 @@
+use std::path::PathBuf;
+
 use anyhow::{anyhow, Result};
 use clap::ArgMatches;
-use std::path::PathBuf;
 
 use crate::media::{handle, repo};
 

@@ -1,4 +1,4 @@
-use clap::{Arg, crate_name};
+use clap::{crate_name, Arg};
 
 pub fn identifier() -> Arg {
     Arg::new("IDENTIFIER")
@@ -21,10 +21,7 @@ pub fn year() -> Arg {
 }
 
 pub fn term() -> Arg {
-    Arg::new("TERM")
-        .required(false)
-        .trailing_var_arg(true)
-        .num_args(0..)
+    Arg::new("TERM").required(false).trailing_var_arg(true).num_args(0..)
 }
 
 pub fn db() -> Arg {

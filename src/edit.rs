@@ -1,8 +1,10 @@
 use anyhow::{anyhow, Result};
 use clap::{ArgMatches, Command};
-use crate::arg_util;
-use crate::args;
-use crate::media::{handle, repo, Media};
+
+use crate::{
+    arg_util, args,
+    media::{handle, repo, Media},
+};
 
 pub fn command() -> Command {
     clap::Command::new("edit")

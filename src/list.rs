@@ -1,9 +1,7 @@
 use anyhow::Result;
 use clap::{ArgMatches, Command};
 
-use crate::arg_util;
-use crate::args;
-use crate::media;
+use crate::{arg_util, args, media};
 
 pub fn command() -> Command {
     Command::new("ls")
@@ -24,11 +22,7 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
         tags: *matches.get_one::<bool>("TAGS").unwrap_or(&false),
 
         // Get max rating BEFORE filtering
-        max_rating: items
-            .iter()
-            .map(|m| m.rating.unwrap_or(0))
-            .max()
-            .unwrap_or(0),
+        max_rating: items.iter().map(|m| m.rating.unwrap_or(0)).max().unwrap_or(0),
     };
 
     for t in arg_util::terms_from_matches(matches) {
@@ -39,14 +33,12 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
                 None => false,
             });
         }
-
         // Filter by special terms
         else if t == "rated" {
             items.retain(|i| i.rating.is_some());
         } else if t == "unrated" {
             items.retain(|i| i.rating.is_none());
         }
-
         // Filter by tags
         else {
             items.retain(|i| i.has_tag(t));
@@ -82,8 +74,8 @@ pub fn try_parse_year_range(input: &str) -> Option<(u16, u16)> {
     if input.len() == 4 {
         return match input.parse::<u16>() {
             Ok(y) => Some((y, y)),
-            Err(_) => None
-        }
+            Err(_) => None,
+        };
     }
 
     // -2024, 2024-
@@ -91,13 +83,13 @@ pub fn try_parse_year_range(input: &str) -> Option<(u16, u16)> {
         if &input[..1] == "-" {
             return match input[1..].parse::<u16>() {
                 Ok(y) => Some((0, y)),
-                Err(_) => None
-            }
+                Err(_) => None,
+            };
         } else if &input[4..] == "-" {
             return match input[..4].parse::<u16>() {
                 Ok(y) => Some((y, 9999)),
-                Err(_) => None
-            }
+                Err(_) => None,
+            };
         }
     }
 
@@ -105,11 +97,17 @@ pub fn try_parse_year_range(input: &str) -> Option<(u16, u16)> {
     if input.len() == 9 && &input[4..5] == "-" {
         return match input[..4].parse::<u16>() {
             Ok(from) => match input[5..].parse::<u16>() {
-                Ok(to) => if from <= to {Some((from, to))} else {None},
-                Err(_) => None
-            }
-            Err(_) => None
-        }
+                Ok(to) => {
+                    if from <= to {
+                        Some((from, to))
+                    } else {
+                        None
+                    }
+                }
+                Err(_) => None,
+            },
+            Err(_) => None,
+        };
     }
 
     None
@@ -126,7 +124,7 @@ mod tests {
         assert_eq!(try_parse_year_range("2024").unwrap(), (2024, 2024));
         assert_eq!(try_parse_year_range("2020-").unwrap(), (2020, 9999));
         assert_eq!(try_parse_year_range("-2020").unwrap(), (0, 2020));
-        assert_eq!(try_parse_year_range("1999-2010").unwrap(), (1999,2010));
+        assert_eq!(try_parse_year_range("1999-2010").unwrap(), (1999, 2010));
 
         // Invalid input
         assert!(try_parse_year_range("foob").is_none());

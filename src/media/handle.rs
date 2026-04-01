@@ -1,8 +1,8 @@
-use regex::Regex;
 use std::sync::LazyLock;
 
-static HANDLE_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^(.+)\s\((\d{4})\)$").unwrap());
+use regex::Regex;
+
+static HANDLE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(.+)\s\((\d{4})\)$").unwrap());
 
 pub struct Handle {
     pub name: String,
