@@ -17,7 +17,10 @@ clap = { version = "4.5.7", features = ["cargo", "string"] }
 colored = "2.1.0"
 dirs = "5.0.1"
 edit = "0.1.5"
+crossterm = "0.29.0"
+ratatui = "0.30.0"
 regex = "1.11.1"
+tui-input = "0.15.0"
 
 [profile.release]
 lto = true

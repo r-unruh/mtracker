@@ -10,6 +10,7 @@ mod media;
 mod rate;
 mod remove;
 mod tags;
+mod tui;
 mod unrate;
 
 #[allow(clippy::missing_errors_doc)]
@@ -20,8 +21,8 @@ pub fn run() -> Result<()> {
         .version(crate_version!())
         .author(crate_authors!())
         .about(format!("{} - cli media tracker", crate_name!()))
-        .subcommand_required(true)
-        .arg_required_else_help(true)
+        .subcommand_required(false)
+        .arg_required_else_help(false)
         .allow_external_subcommands(false)
         .arg(args::db())
         .subcommand(list::command())
@@ -42,6 +43,7 @@ pub fn run() -> Result<()> {
         Some(("unrate", matches)) => unrate::handle(matches),
         Some(("edit", matches)) => edit::handle(matches),
         Some(("tags", matches)) => tags::handle(matches),
+        None => tui::run(&matches),
         _ => unreachable!(),
     }
 }

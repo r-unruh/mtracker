@@ -32,6 +32,22 @@ impl Repo {
         Ok(self.get(handle).unwrap())
     }
 
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+
+    pub fn get_by_index(&self, i: usize) -> &media::Media {
+        &self.items[i]
+    }
+
+    pub fn get_by_index_mut(&mut self, i: usize) -> &mut media::Media {
+        &mut self.items[i]
+    }
+
+    pub fn remove_by_index(&mut self, i: usize) {
+        self.items.swap_remove(i);
+    }
+
     pub fn get_all(&self) -> Vec<&media::Media> {
         self.items.iter().collect()
     }
