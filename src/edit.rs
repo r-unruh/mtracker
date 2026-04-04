@@ -66,7 +66,16 @@ fn edit_db(repo: &mut repo::Repo) -> Result<()> {
         return Ok(());
     }
 
-    // TODO: Validate database
+    // Validate
+    let blocks: Vec<&str> = new_db.split("\n\n").filter(|b| !b.is_empty()).map(str::trim).collect();
+    for (i, block) in blocks.iter().enumerate() {
+        if let Err(e) = Media::from_db_entry(block) {
+            return Err(anyhow!(
+                "validation failed at entry {}: {e}\n\n{block}\n\nNo changes saved.",
+                i + 1
+            ));
+        }
+    }
 
     // Save changes
     std::fs::write(&repo.path, new_db)?;

@@ -25,24 +25,13 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
         max_rating: items.iter().map(|m| m.rating.unwrap_or(0)).max().unwrap_or(0),
     };
 
+    let max_rating = options.max_rating;
     for t in arg_util::terms_from_matches(matches) {
-        // Filter by year
-        if let Some(range) = try_parse_year_range(t) {
-            items.retain(|i| match i.year {
-                Some(y) => y >= range.0 && y <= range.1,
-                None => false,
-            });
-        }
-        // Filter by special terms
-        else if t == "rated" {
-            items.retain(|i| i.rating.is_some());
-        } else if t == "unrated" {
-            items.retain(|i| i.rating.is_none());
-        }
-        // Filter by tags
-        else {
-            items.retain(|i| i.has_tag(t));
-        }
+        let (negated, term) = match t.strip_prefix('!') {
+            Some(s) if !s.is_empty() => (true, s),
+            _ => (false, t.as_str()),
+        };
+        items.retain(|i| matches_term(i, term, max_rating) != negated);
     }
 
     // Sort (watchlist, rating, unrated, alphabetic)
@@ -67,6 +56,44 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
 
 fn get_weight(item: &media::Media) -> usize {
     item.rating.unwrap_or(0) as usize + 1 + if item.has_tag("watchlist") { 1000 } else { 0 }
+}
+
+pub fn matches_term(item: &media::Media, term: &str, max_rating: u8) -> bool {
+    if let Some(range) = try_parse_year_range(term) {
+        return matches!(item.year, Some(y) if y >= range.0 && y <= range.1);
+    }
+    if term == "rated" {
+        return item.rating.is_some();
+    }
+    if term == "unrated" {
+        return item.rating.is_none();
+    }
+    if let Some(m) = try_match_rating(term, item, max_rating) {
+        return m;
+    }
+    if item.has_tag(term) {
+        return true;
+    }
+    item.name.to_lowercase().contains(&term.to_lowercase())
+}
+
+fn try_match_rating(term: &str, item: &media::Media, max_rating: u8) -> Option<bool> {
+    if term.is_empty() || !term.chars().all(|c| c == '+' || c == '-') {
+        return None;
+    }
+    let pluses = term.chars().filter(|&c| c == '+').count() as u8;
+    let minuses = term.chars().filter(|&c| c == '-').count() as u8;
+    let rating = match item.rating {
+        Some(r) => r,
+        None => return Some(false),
+    };
+    if pluses > 0 && minuses > 0 {
+        Some(rating == pluses)
+    } else if minuses > 0 {
+        Some(rating <= max_rating.saturating_sub(minuses))
+    } else {
+        Some(rating >= pluses)
+    }
 }
 
 pub fn try_parse_year_range(input: &str) -> Option<(u16, u16)> {

@@ -2,7 +2,7 @@ use ratatui::widgets::ListState;
 use tui_input::Input;
 
 use crate::{
-    list::try_parse_year_range,
+    list::matches_term,
     media::{repo::Repo, Media},
 };
 
@@ -59,43 +59,15 @@ impl App {
                 if terms.is_empty() {
                     return true;
                 }
-                for term in &terms {
-                    // Year range
-                    if let Some(range) = try_parse_year_range(term) {
-                        match item.year {
-                            Some(y) if y >= range.0 && y <= range.1 => continue,
-                            _ => return false,
-                        }
-                    }
-                    // Special terms
-                    if *term == "rated" {
-                        if item.rating.is_some() {
-                            continue;
-                        }
+                for raw_term in &terms {
+                    let (negated, term) = match raw_term.strip_prefix('!') {
+                        Some(t) if !t.is_empty() => (true, t),
+                        _ => (false, *raw_term),
+                    };
+                    let matched = matches_term(item, term, max_rating);
+                    if matched == negated {
                         return false;
                     }
-                    if *term == "unrated" {
-                        if item.rating.is_none() {
-                            continue;
-                        }
-                        return false;
-                    }
-                    // Rating pattern (e.g. ++, ++--, ---)
-                    if let Some(m) = try_match_rating(term, item, max_rating) {
-                        if m {
-                            continue;
-                        }
-                        return false;
-                    }
-                    // Tag match
-                    if item.has_tag(term) {
-                        continue;
-                    }
-                    // Name substring match (case-insensitive)
-                    if item.name.to_lowercase().contains(&term.to_lowercase()) {
-                        continue;
-                    }
-                    return false;
                 }
                 true
             })
@@ -144,25 +116,6 @@ impl App {
             .filter_map(|i| self.repo.get_by_index(i).rating)
             .max()
             .unwrap_or(0)
-    }
-}
-
-fn try_match_rating(term: &str, item: &Media, max_rating: u8) -> Option<bool> {
-    if term.is_empty() || !term.chars().all(|c| c == '+' || c == '-') {
-        return None;
-    }
-    let pluses = term.chars().filter(|&c| c == '+').count() as u8;
-    let minuses = term.chars().filter(|&c| c == '-').count() as u8;
-    let rating = match item.rating {
-        Some(r) => r,
-        None => return Some(false),
-    };
-    if pluses > 0 && minuses > 0 {
-        Some(rating == pluses)
-    } else if minuses > 0 {
-        Some(rating <= max_rating.saturating_sub(minuses))
-    } else {
-        Some(rating >= pluses)
     }
 }
 
