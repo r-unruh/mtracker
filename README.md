@@ -1,13 +1,16 @@
 # mtracker
-mtracker is a simple cli tool for Linux that lets you keep track of watched
-movies and series. Or any other kind of media, like books and video games.
+mtracker is a simple tool for Linux that lets you keep track of watched movies
+and series. Or any other kind of media, like books and video games.
 
+* Interactive TUI and traditional CLI interface.
 * Designed to work well with standard Linux command line tools like grep.
 * Flat file system: All data is saved in a human-readable text file.
 * No built-in cloud synchronization. Of course, you can set up some kind of
   synchronization yourself if you wish to.
 * No data is fetched from the internet. You enter all the information that's
   useful to you manually.
+
+![mtracker TUI](screenshot.png)
 
 
 ## Installation
@@ -27,8 +30,6 @@ Don't forget to make the file executable:
 ```bash
 sudo chmod +x /usr/local/bin/mtracker
 ```
-
-More user-friendly install options will probably be added at some point.
 
 
 ## Tutorial
@@ -72,6 +73,33 @@ options.
 > Make sure to backup your database on a regular basis.
 
 
+## TUI
+Launch the interactive terminal interface by running mtracker without any
+subcommand:
+```bash
+mtracker
+```
+
+The TUI provides vim-style navigation and quick actions for managing your
+database without having to type out full commands.
+
+### Keybindings
+
+Key                    | Action
+-----------------------|--------
+`j` / `k`              | Move up / down
+`g` / `G`              | Jump to first / last item
+`Ctrl+d` / `Ctrl+u`    | Page down / up
+`/`                    | Filter items
+`a`                    | Add new item (opens `$EDITOR`)
+`e`                    | Edit selected item (opens `$EDITOR`)
+`r`                    | Rate selected item
+`w`                    | Toggle watchlist
+`d`                    | Delete selected item (with confirmation)
+`Esc`                  | Clear filter, or quit
+`q`                    | Quit
+
+
 ## Database
 The database is just a plain text file that you can edit by hand. It looks like
 this:
@@ -91,11 +119,15 @@ Whiplash
 rating: 10
 ```
 
+You can also open the whole database in your editor with `mtracker edit`. The
+file is validated before saving, so typos won't corrupt your data.
+
 On Linux, the database file is automatically created and stored in
 `~/.local/share/mtracker/db.txt`. If any relevant XDG environment variables
 (e.g., `XDG_DATA_HOME`) are set, they will be respected, and the file will be
 stored according to the [XDG Base Directory
 Specification](https://specifications.freedesktop.org/basedir-spec/latest/).
+
 
 ## Features
 ### Ratings
@@ -149,27 +181,36 @@ Here are a few options:
 You can tag movies and filter by tags when listing them later. `watchlist` is a
 special tag that highlights items and puts them on top of everything else.
 
-### Special search terms
-When listing items with the `ls` subcommand, you can filter for additional
-attributes:
+### Filtering
+When listing items (with `ls` or in the TUI), you can filter by combining
+search terms. All terms must match (AND logic). Prefix a term with `!` to
+negate it.
 
 Term                | Meaning
 --------------------|--------------
-`rated`             | List items that have a rating
-`unrated`           | List items without a rating
-`<year>`            | List items released in `<year>` (see examples)
-`<year>-<year>`     | List items released between `<year>` and `<year>`
-`-<year>`           | List items released before or in `<year>`
-`<year>-`           | List items released after or in `<year>`
+`<tag>`             | Items with this tag
+`<text>`            | Items whose name contains `<text>`
+`rated`             | Items that have a rating
+`unrated`           | Items without a rating
+`++`                | Items with a rating of at least 2
+`---`               | Items with at least 3 minuses
+`++-`               | Items with an exact rating of 2
+`<year>`            | Items released in `<year>`
+`<year>-<year>`     | Items released between the two years
+`-<year>`           | Items released before or in `<year>`
+`<year>-`           | Items released after or in `<year>`
+`!<term>`           | Exclude items matching `<term>`
 
 
 ## Command examples
 Command                                               | Action
 ------------------------------------------------------|--------------
 `mtracker ls`                                         | List all items
-`mtracker ls horror comedy`                           | List items that are tagged both horror and comedy
-`mtracker ls horror 2022-2024`                        | List horror movies that were released between 2022 and 2024
+`mtracker ls horror comedy`                           | List items tagged both horror and comedy
+`mtracker ls horror 2022-2024`                        | List horror movies released between 2022 and 2024
+`mtracker ls rated !horror`                           | List all rated items that are not tagged horror
 `mtracker add "Aliens (1986)" --tag=watchlist,horror` | Add new item with tags OR add tags to an existing item
 `mtracker rate "Aliens (1986)" 5`                     | Rate item a 5 (and remove from watchlist)
-`mtracker ls \| grep -i aliens`                       | Pipe to grep to find entries
-`mtracker ls \| grep +++`                             | Pipe to grep to search for items with a rating of at least 3
+`mtracker edit`                                       | Open the whole database in your editor
+`mtracker edit "Aliens (1986)"`                       | Edit a specific entry in your editor
+`mtracker`                                            | Launch the interactive TUI
