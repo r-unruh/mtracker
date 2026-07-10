@@ -87,9 +87,9 @@ database without having to type out full commands.
 
 Key                    | Action
 -----------------------|--------
-`j` / `k`              | Move up / down
+`j` / `k`              | Move down / up
 `g` / `G`              | Jump to first / last item
-`Ctrl+d` / `Ctrl+u`    | Page down / up
+`Ctrl+d` / `Ctrl+u`    | Half-page down / up
 `/`                    | Filter items
 `a`                    | Add new item (opens `$EDITOR`)
 `e`                    | Edit selected item (opens `$EDITOR`)
@@ -208,7 +208,7 @@ Command                                               | Action
 `mtracker ls`                                         | List all items
 `mtracker ls horror comedy`                           | List items tagged both horror and comedy
 `mtracker ls horror 2022-2024`                        | List horror movies released between 2022 and 2024
-`mtracker ls rated !horror`                           | List all rated items that are not tagged horror
+`mtracker ls rated '!horror'`                         | List all rated items that are not tagged horror
 `mtracker add "Aliens (1986)" --tag=watchlist,horror` | Add new item with tags OR add tags to an existing item
 `mtracker rate "Aliens (1986)" 5`                     | Rate item a 5 (and remove from watchlist)
 `mtracker edit`                                       | Open the whole database in your editor
