@@ -53,8 +53,7 @@ fn handle_normal(
         KeyCode::Char('q') => app.quit = true,
         KeyCode::Esc => {
             if !app.filter.is_empty() {
-                app.filter.clear();
-                app.apply_filter();
+                app.set_filter(String::new());
             } else {
                 app.quit = true;
             }
@@ -152,18 +151,16 @@ fn is_enter(key: &KeyEvent) -> bool {
 fn handle_filter(app: &mut App, key: KeyEvent) -> Result<()> {
     match key.code {
         _ if is_enter(&key) => {
-            app.filter = app.input.value().to_string();
+            app.set_filter(app.input.value().to_string());
             app.mode = Mode::Normal;
         }
         KeyCode::Esc => {
-            app.filter.clear();
-            app.apply_filter();
+            app.set_filter(String::new());
             app.mode = Mode::Normal;
         }
         _ => {
             app.input.handle_event(&Event::Key(key));
-            app.filter = app.input.value().to_string();
-            app.apply_filter();
+            app.set_filter(app.input.value().to_string());
         }
     }
     Ok(())

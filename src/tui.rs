@@ -71,8 +71,7 @@ fn main_loop(
                         continue;
                     }
                     if !app.filter.is_empty() {
-                        app.filter.clear();
-                        app.apply_filter();
+                        app.set_filter(String::new());
                         continue;
                     }
                     break;

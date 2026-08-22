@@ -169,6 +169,17 @@ impl App {
         }
     }
 
+    /// Change the filter text; a changed filter starts at the top of the list
+    pub fn set_filter(&mut self, filter: String) {
+        if filter == self.filter {
+            return;
+        }
+        self.filter = filter;
+        self.selected = 0;
+        *self.list_state.offset_mut() = 0;
+        self.apply_filter();
+    }
+
     pub fn item_count(&self) -> usize {
         self.filtered.iter().filter(|r| matches!(r, Row::Item(_))).count()
     }
