@@ -98,6 +98,7 @@ Key                    | Action
 `w`                    | Toggle watchlist
 `d`                    | Delete selected item (with confirmation)
 `o`                    | Open selected item in the browser (`i` IMDb, `t` TMDB, `l` Letterboxd)
+`s`                    | Sync with IMDb (see below)
 
 ### Searching the catalog
 After `mtracker sync`, filtering doesn't only search your own items: matching

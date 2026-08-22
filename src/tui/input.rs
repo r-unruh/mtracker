@@ -126,6 +126,7 @@ fn handle_normal(
                 app.message = None;
             }
         }
+        KeyCode::Char('s') => action_sync(app, terminal)?,
         _ => {}
     }
     Ok(())
@@ -343,6 +344,41 @@ fn open_in_browser(url: &str) -> Result<()> {
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .spawn()?;
+    Ok(())
+}
+
+/// Run sync in the normal terminal so its output is visible, then reload
+fn action_sync(
+    app: &mut App,
+    terminal: &mut Terminal<ratatui::backend::CrosstermBackend<io::Stdout>>,
+) -> Result<()> {
+    terminal::disable_raw_mode()?;
+    crossterm::execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+    terminal.show_cursor()?;
+
+    let result = crate::sync::run(&mut app.repo, &crate::sync::Options::default());
+    if let Err(e) = &result {
+        eprintln!("\nSync failed: {e}");
+    }
+
+    // Wait for a keypress before hiding the output again
+    println!("\nPress any key to return");
+    terminal::enable_raw_mode()?;
+    loop {
+        if let Event::Key(key) = crossterm::event::read()? {
+            if key.kind != crossterm::event::KeyEventKind::Release {
+                break;
+            }
+        }
+    }
+    crossterm::execute!(terminal.backend_mut(), EnterAlternateScreen)?;
+    terminal.clear()?;
+
+    app.reload_caches()?;
+    app.message = Some(match result {
+        Ok(()) => "Sync finished".into(),
+        Err(e) => format!("Sync failed: {e}"),
+    });
     Ok(())
 }
 

@@ -14,7 +14,7 @@ use crate::{
         matcher::{self, MatchKind},
         meta, names, Meta, TitleType,
     },
-    media::{handle::Handle, Media},
+    media::{handle::Handle, repo::Repo, Media},
 };
 
 const BASICS_HEADER: [&str; 9] = [
@@ -77,17 +77,47 @@ match, edit the id by hand.",
         )
 }
 
+pub struct Options {
+    pub force_download: bool,
+    pub dry_run: bool,
+    pub min_votes: u32,
+    /// Only sync this item
+    pub item: Option<Handle>,
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Options {
+            force_download: false,
+            dry_run: false,
+            min_votes: 1000,
+            item: None,
+        }
+    }
+}
+
 pub fn handle(matches: &ArgMatches) -> Result<()> {
     let mut repo = arg_util::repo_from_matches(matches)?;
-    let force_download = matches.get_flag("DOWNLOAD");
-    let dry_run = matches.get_flag("DRY_RUN");
-    let min_votes = *matches.get_one::<u32>("MIN_VOTES").unwrap();
+    let opts = Options {
+        force_download: matches.get_flag("DOWNLOAD"),
+        dry_run: matches.get_flag("DRY_RUN"),
+        min_votes: *matches.get_one::<u32>("MIN_VOTES").unwrap(),
+        item: arg_util::handle_from_matches(matches)?,
+    };
+    run(&mut repo, &opts)
+}
+
+/// Link items to IMDb, refresh the metadata cache and rebuild the catalog
+pub fn run(repo: &mut Repo, opts: &Options) -> Result<()> {
+    let force_download = opts.force_download;
+    let dry_run = opts.dry_run;
+    let min_votes = opts.min_votes;
 
     // Which items to sync
-    let targets: Vec<usize> = match arg_util::handle_from_matches(matches)? {
+    let targets: Vec<usize> = match &opts.item {
         Some(handle) => {
             let idx = (0..repo.len())
-                .find(|&i| repo.get_by_index(i).matches_handle(&handle))
+                .find(|&i| repo.get_by_index(i).matches_handle(handle))
                 .ok_or_else(|| anyhow!("item not found: {handle}"))?;
             vec![idx]
         }

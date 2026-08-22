@@ -74,7 +74,7 @@ pub fn render(app: &mut App, f: &mut ratatui::Frame) {
             let text = if let Some(msg) = &app.message {
                 msg.clone()
             } else {
-                "[/]filter [a]dd [r]ate [e]dit [d]elete [w]atchlist [o]pen [q]uit".into()
+                "[/]filter [a]dd [r]ate [e]dit [d]elete [w]atchlist [o]pen [s]ync [q]uit".into()
             };
             Line::from(Span::raw(text))
         }

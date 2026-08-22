@@ -83,6 +83,24 @@ impl App {
         app
     }
 
+    /// Load the catalog on a background thread
+    pub fn spawn_catalog_load() -> Receiver<Result<Vec<CatalogEntry>>> {
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            tx.send(imdb::load_catalog()).ok();
+        });
+        rx
+    }
+
+    /// Re-read the caches after a sync
+    pub fn reload_caches(&mut self) -> Result<()> {
+        self.metas = imdb::load_meta()?;
+        self.catalog_rx = Some(Self::spawn_catalog_load());
+        self.refresh_db_ids();
+        self.apply_filter();
+        Ok(())
+    }
+
     /// Pick up the catalog once the background load is done
     pub fn poll_catalog(&mut self) -> Result<()> {
         let Some(rx) = &self.catalog_rx else {

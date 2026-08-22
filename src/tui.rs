@@ -21,12 +21,7 @@ pub fn run(matches: &ArgMatches) -> Result<()> {
     let repo = Repo::new(&path)?;
     let metas = imdb::load_meta()?;
 
-    // The search catalog is large; load it while the TUI is already up
-    let (tx, rx) = std::sync::mpsc::channel();
-    std::thread::spawn(move || {
-        tx.send(imdb::load_catalog()).ok();
-    });
-    let mut app = App::new(repo, metas, rx);
+    let mut app = App::new(repo, metas, App::spawn_catalog_load());
 
     // Setup terminal
     terminal::enable_raw_mode()?;
