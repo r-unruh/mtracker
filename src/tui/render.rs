@@ -122,7 +122,7 @@ pub fn render(app: &mut App, f: &mut ratatui::Frame) {
             let text = if let Some(msg) = &app.message {
                 msg.clone()
             } else {
-                "[/]filter [a]dd [r]ate [e]dit [d]elete [w]atchlist [q]uit".into()
+                "[/]filter [a]dd [r]ate [e]dit [d]elete [w]atchlist [o]pen [q]uit".into()
             };
             Line::from(Span::raw(text))
         }
@@ -150,6 +150,10 @@ pub fn render(app: &mut App, f: &mut ratatui::Frame) {
             let name = &app.repo.get_by_index(*idx).name;
             Line::from(Span::styled(format!("Delete \"{name}\"? [y/n]"), yellow))
         }
+        Mode::Open(_) => Line::from(Span::styled(
+            "Open in browser: [i]mdb  [t]mdb  [l]etterboxd  (Esc to cancel)",
+            yellow,
+        )),
     };
     f.render_widget(Paragraph::new(footer_line), chunks[2]);
 }

@@ -22,6 +22,7 @@ pub fn handle_key(
         Mode::Filter => handle_filter(app, key),
         Mode::Rate(_) => handle_rate(app, key),
         Mode::Confirm(_) => handle_confirm(app, key),
+        Mode::Open(_) => handle_open(app, key),
     }
 }
 
@@ -96,6 +97,12 @@ fn handle_normal(
             }
         }
         KeyCode::Char('e') => action_edit(app, terminal)?,
+        KeyCode::Char('o') => {
+            if let Some(idx) = app.selected_repo_index() {
+                app.mode = Mode::Open(idx);
+                app.message = None;
+            }
+        }
         _ => {}
     }
     Ok(())
@@ -189,6 +196,108 @@ fn handle_confirm(app: &mut App, key: KeyEvent) -> Result<()> {
         }
         _ => {}
     }
+    Ok(())
+}
+
+fn handle_open(app: &mut App, key: KeyEvent) -> Result<()> {
+    let Mode::Open(idx) = app.mode else {
+        return Ok(());
+    };
+    let site = match key.code {
+        KeyCode::Char('i') => Site::Imdb,
+        KeyCode::Char('t') => Site::Tmdb,
+        KeyCode::Char('l') => Site::Letterboxd,
+        KeyCode::Esc | KeyCode::Char('q') => {
+            app.mode = Mode::Normal;
+            return Ok(());
+        }
+        _ => return Ok(()),
+    };
+    app.mode = Mode::Normal;
+
+    let item = app.repo.get_by_index(idx);
+    let url = site.url(item);
+    let name = crate::media::handle::Handle {
+        name: item.name.clone(),
+        year: item.year,
+    };
+    app.message = Some(match open_in_browser(&url) {
+        Ok(()) => format!("Opened {site}: {name}"),
+        Err(e) => format!("Failed to open browser: {e}"),
+    });
+    Ok(())
+}
+
+#[derive(Clone, Copy)]
+enum Site {
+    Imdb,
+    Tmdb,
+    Letterboxd,
+}
+
+impl Site {
+    /// Title page for linked items on IMDb, otherwise a search for name and year
+    fn url(self, item: &Media) -> String {
+        let year = item.year.map(|y| y.to_string()).unwrap_or_default();
+        match self {
+            Site::Imdb => match &item.imdb {
+                Some(id) => format!("https://www.imdb.com/title/{id}/"),
+                None => format!(
+                    "https://www.imdb.com/find/?q={}",
+                    url_encode(format!("{} {year}", item.name).trim())
+                ),
+            },
+            Site::Tmdb => {
+                let query = if year.is_empty() {
+                    item.name.clone()
+                } else {
+                    format!("{} y:{year}", item.name)
+                };
+                format!("https://www.themoviedb.org/search?query={}", url_encode(&query))
+            }
+            Site::Letterboxd => match &item.imdb {
+                Some(id) => format!("https://letterboxd.com/imdb/{id}"),
+                None => format!(
+                    "https://letterboxd.com/search/{}/",
+                    url_encode(format!("{} {year}", item.name).trim())
+                ),
+            },
+        }
+    }
+}
+
+impl std::fmt::Display for Site {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Site::Imdb => "IMDb",
+            Site::Tmdb => "TMDB",
+            Site::Letterboxd => "Letterboxd",
+        })
+    }
+}
+
+/// Percent-encode a string for use in a URL query
+fn url_encode(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for b in s.bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(b as char);
+            }
+            _ => out.push_str(&format!("%{b:02X}")),
+        }
+    }
+    out
+}
+
+/// Open a URL with xdg-open, detached from the TUI's terminal
+fn open_in_browser(url: &str) -> Result<()> {
+    std::process::Command::new("xdg-open")
+        .arg(url)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()?;
     Ok(())
 }
 
@@ -330,4 +439,30 @@ fn action_edit(
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn urls() {
+        let mut item = Media::new("Get Out", Some(2017));
+        assert_eq!(Site::Imdb.url(&item), "https://www.imdb.com/find/?q=Get%20Out%202017");
+        assert_eq!(
+            Site::Tmdb.url(&item),
+            "https://www.themoviedb.org/search?query=Get%20Out%20y%3A2017"
+        );
+        assert_eq!(Site::Letterboxd.url(&item), "https://letterboxd.com/search/Get%20Out%202017/");
+        item.imdb = Some("tt5052448".into());
+        assert_eq!(Site::Imdb.url(&item), "https://www.imdb.com/title/tt5052448/");
+        assert_eq!(Site::Letterboxd.url(&item), "https://letterboxd.com/imdb/tt5052448");
+
+        let item = Media::new("Amélie & co", None);
+        assert_eq!(Site::Imdb.url(&item), "https://www.imdb.com/find/?q=Am%C3%A9lie%20%26%20co");
+        assert_eq!(
+            Site::Tmdb.url(&item),
+            "https://www.themoviedb.org/search?query=Am%C3%A9lie%20%26%20co"
+        );
+    }
 }

@@ -14,6 +14,8 @@ pub enum Mode {
     Filter,
     Rate(String),
     Confirm(ConfirmAction),
+    /// Choose a website to open the item (repo index) in
+    Open(usize),
 }
 
 pub enum ConfirmAction {

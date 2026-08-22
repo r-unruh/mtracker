@@ -97,6 +97,7 @@ Key                    | Action
 `r`                    | Rate selected item
 `w`                    | Toggle watchlist
 `d`                    | Delete selected item (with confirmation)
+`o`                    | Open selected item in the browser (`i` IMDb, `t` TMDB, `l` Letterboxd)
 `Esc`                  | Clear filter, or quit
 `q`                    | Quit
 
