@@ -97,6 +97,11 @@ fn try_match_rating(term: &str, item: &media::Media, max_rating: u8) -> Option<b
 }
 
 pub fn try_parse_year_range(input: &str) -> Option<(u16, u16)> {
+    // Byte slicing below is only safe on ASCII; years are ASCII anyway
+    if !input.is_ascii() {
+        return None;
+    }
+
     // 2024
     if input.len() == 4 {
         return match input.parse::<u16>() {
@@ -159,5 +164,20 @@ mod tests {
         assert!(try_parse_year_range("#2024").is_none());
         assert!(try_parse_year_range("20244").is_none());
         assert!(try_parse_year_range("2020-2010").is_none());
+
+        // Non-ASCII input must not panic on byte slicing
+        assert!(try_parse_year_range("Über").is_none());
+        assert!(try_parse_year_range("Ö").is_none());
+        assert!(try_parse_year_range("Öabc-2024").is_none());
+        assert!(try_parse_year_range("\"Über\"").is_none());
+    }
+
+    #[test]
+    fn matches_term_handles_non_ascii() {
+        let item = media::Media::new("Über uns", Some(2020));
+        assert!(matches_term(&item, "über", 0));
+        assert!(matches_term(&item, "Ü", 0));
+        assert!(!matches_term(&item, "Öabc", 0));
+        assert!(!matches_term(&item, "\"", 0));
     }
 }

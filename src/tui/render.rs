@@ -115,10 +115,11 @@ pub fn render(app: &mut App, f: &mut ratatui::Frame) {
             Line::from(Span::raw(text))
         }
         Mode::Filter => {
+            // The cursor is a character index, not a byte index
             let val = app.input.value();
             let cur = app.input.cursor();
-            let (before, rest) = val.split_at(cur);
-            let mut chars = rest.chars();
+            let before: String = val.chars().take(cur).collect();
+            let mut chars = val.chars().skip(cur);
             let under = chars.next().map_or(" ".to_string(), |c| c.to_string());
             let after: String = chars.collect();
             Line::from(vec![

@@ -28,6 +28,15 @@ pub fn run(matches: &ArgMatches) -> Result<()> {
     let backend = ratatui::backend::CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
+    // Restore the terminal even if we panic, otherwise the shell is left in
+    // raw mode on the alternate screen and the panic message is invisible
+    let default_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        terminal::disable_raw_mode().ok();
+        crossterm::execute!(io::stdout(), LeaveAlternateScreen).ok();
+        default_hook(info);
+    }));
+
     // Main loop
     let result = main_loop(&mut app, &mut terminal);
 
