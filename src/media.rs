@@ -11,6 +11,7 @@ pub struct Media {
     pub year: Option<u16>,
     pub rating: Option<u8>,
     pub tags: Vec<String>,
+    pub imdb: Option<String>,
     pub note: String,
     pub last_seen: Option<chrono::NaiveDate>,
 }
@@ -24,6 +25,7 @@ impl Media {
             year,
             rating: None,
             tags: vec![],
+            imdb: None,
             note: String::new(),
             last_seen: None,
         }

@@ -1,7 +1,10 @@
+use std::collections::HashMap;
+
 use ratatui::widgets::ListState;
 use tui_input::Input;
 
 use crate::{
+    imdb::{self, Meta},
     list::matches_term,
     media::{repo::Repo, Media},
 };
@@ -19,6 +22,7 @@ pub enum ConfirmAction {
 
 pub struct App {
     pub repo: Repo,
+    pub metas: HashMap<String, Meta>,
     pub filtered: Vec<usize>,
     pub selected: usize,
     pub list_state: ListState,
@@ -30,9 +34,10 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(repo: Repo) -> Self {
+    pub fn new(repo: Repo, metas: HashMap<String, Meta>) -> Self {
         let mut app = App {
             repo,
+            metas,
             filtered: vec![],
             selected: 0,
             list_state: ListState::default(),
@@ -56,6 +61,7 @@ impl App {
         self.filtered = (0..self.repo.len())
             .filter(|&i| {
                 let item = self.repo.get_by_index(i);
+                let meta = imdb::meta_for(&self.metas, item);
                 if terms.is_empty() {
                     return true;
                 }
@@ -64,7 +70,7 @@ impl App {
                         Some(t) if !t.is_empty() => (true, t),
                         _ => (false, *raw_term),
                     };
-                    let matched = matches_term(item, term, max_rating);
+                    let matched = matches_term(item, meta, term, max_rating);
                     if matched == negated {
                         return false;
                     }

@@ -21,6 +21,15 @@ fn parse_last_seen(input: &str) -> Result<Option<chrono::NaiveDate>> {
     }
 }
 
+fn parse_imdb(input: &str) -> Result<Option<String>> {
+    let digits = input.strip_prefix("tt").unwrap_or("");
+    if !digits.is_empty() && digits.chars().all(|c| c.is_ascii_digit()) {
+        Ok(Some(input.to_string()))
+    } else {
+        Err(anyhow!("failed to parse imdb: {input}\nExpected format: tt1234567"))
+    }
+}
+
 fn parse_tags(input: &str) -> Result<Vec<String>> {
     let tags: Vec<String> = parse_prop::<String>(("tags", input))?
         .unwrap()
@@ -43,6 +52,7 @@ impl media::Media {
         let mut rating: Option<u8> = None;
         let mut note: String = String::new();
         let mut tags: Vec<String> = vec![];
+        let mut imdb: Option<String> = None;
         let mut last_seen: Option<chrono::NaiveDate> = None;
 
         let mut lines = entry.lines();
@@ -71,6 +81,7 @@ impl media::Media {
                 "rating" => rating = parse_prop::<u8>((key, value))?,
                 "note" => note = parse_prop::<String>((key, value))?.unwrap(),
                 "tags" => tags = parse_tags(value)?,
+                "imdb" => imdb = parse_imdb(value)?,
                 "last_seen" => last_seen = parse_last_seen(value)?,
                 _ => return Err(anyhow!("unknown key: {key}")),
             };
@@ -81,6 +92,7 @@ impl media::Media {
             year,
             rating,
             tags,
+            imdb,
             note,
             last_seen,
         })
@@ -96,6 +108,9 @@ impl media::Media {
         }
         if !self.tags.is_empty() {
             result += format!("\ntags: {}", self.tags.join(", ")).as_str();
+        }
+        if let Some(imdb) = &self.imdb {
+            result += format!("\nimdb: {imdb}").as_str();
         }
         if !self.note.is_empty() {
             result += format!("\nnote: {}", self.note).as_str();
@@ -118,6 +133,7 @@ mod tests {
 year:  1994
 rating:2
 tags: drama, romance,funny
+imdb: tt0109830
 last_seen: 2020-12-31
 note:very long";
 
@@ -128,6 +144,7 @@ note:very long";
         assert_eq!(media.note, "very long");
         assert_eq!(media.last_seen, chrono::NaiveDate::from_ymd_opt(2020, 12, 31));
         assert_eq!(media.tags, vec!["drama", "romance", "funny"]);
+        assert_eq!(media.imdb.as_deref(), Some("tt0109830"));
 
         // Bad entry, but technically valid
         let entry = "year: 2009
@@ -139,6 +156,7 @@ note:very long";
         assert_eq!(media.note, String::new());
         assert_eq!(media.last_seen, None);
         assert!(media.tags.is_empty());
+        assert_eq!(media.imdb, None);
     }
 
     #[test]
@@ -179,6 +197,13 @@ tags: a,";
         let error = media::Media::from_db_entry(entry).unwrap_err();
         assert!(error.to_string().starts_with("empty tag"));
 
+        // Invalid imdb ids
+        for bad in ["0109830", "tt", "ttabc", "nm0000001"] {
+            let entry = format!("foobar\nimdb: {bad}");
+            let error = media::Media::from_db_entry(&entry).unwrap_err();
+            assert!(error.to_string().starts_with("failed to parse imdb"), "{bad}");
+        }
+
         // Prop without delimiter
         let entry = "foobar
 name value";
@@ -193,6 +218,7 @@ name value";
             year: Some(1994),
             rating: Some(2),
             tags: vec!["drama".into(), "romance".into()],
+            imdb: Some("tt0109830".into()),
             note: "very long".into(),
             last_seen: chrono::NaiveDate::from_ymd_opt(2024, 6, 12),
         };
@@ -201,6 +227,7 @@ name value";
 year: 1994
 rating: 2
 tags: drama, romance
+imdb: tt0109830
 note: very long
 last_seen: 2024-06-12";
 

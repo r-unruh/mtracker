@@ -5,10 +5,12 @@ mod add;
 mod arg_util;
 mod args;
 mod edit;
+mod imdb;
 mod list;
 mod media;
 mod rate;
 mod remove;
+mod sync;
 mod tags;
 mod tui;
 mod unrate;
@@ -32,6 +34,7 @@ pub fn run() -> Result<()> {
         .subcommand(unrate::command())
         .subcommand(edit::command())
         .subcommand(tags::command())
+        .subcommand(sync::command())
         .get_matches();
 
     // Run command
@@ -43,6 +46,7 @@ pub fn run() -> Result<()> {
         Some(("unrate", matches)) => unrate::handle(matches),
         Some(("edit", matches)) => edit::handle(matches),
         Some(("tags", matches)) => tags::handle(matches),
+        Some(("sync", matches)) => sync::handle(matches),
         None => tui::run(&matches),
         _ => unreachable!(),
     }

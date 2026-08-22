@@ -7,8 +7,9 @@ and series. Or any other kind of media, like books and video games.
 * Flat file system: All data is saved in a human-readable text file.
 * No built-in cloud synchronization. Of course, you can set up some kind of
   synchronization yourself if you wish to.
-* No data is fetched from the internet. You enter all the information that's
-  useful to you manually.
+* Works offline. Optionally, `mtracker sync` fetches genres, IMDb ratings and
+  directors from IMDb's public datasets - no account, no API key. Nothing
+  touches the network unless you run it.
 
 ![mtracker TUI](screenshot.png)
 
@@ -108,6 +109,7 @@ Forrest Gump
 year: 1994
 rating: 9
 tags: drama, comedy
+imdb: tt0109830
 last_seen: 2020-12-31
 
 Bodies Bodies Bodies
@@ -121,6 +123,10 @@ rating: 10
 
 You can also open the whole database in your editor with `mtracker edit`. The
 file is validated before saving, so typos won't corrupt your data.
+
+`imdb` is the item's IMDb id, written by `mtracker sync` (see below). It's the
+only thing sync ever adds to the file: genres, ratings and directors live in a
+separate cache, so the database stays exactly what you typed.
 
 On Linux, the database file is automatically created and stored in
 `~/.local/share/mtracker/db.txt`. If any relevant XDG environment variables
@@ -181,6 +187,32 @@ Here are a few options:
 You can tag movies and filter by tags when listing them later. `watchlist` is a
 special tag that highlights items and puts them on top of everything else.
 
+### IMDb sync
+Typing tags by hand gets old. `mtracker sync` links your items to IMDb and
+fetches genres, IMDb ratings and directors:
+```bash
+mtracker sync --dry-run   # show what would be linked, change nothing
+mtracker sync             # link everything that isn't linked yet
+mtracker sync "Alien (1979)"
+```
+
+On first run it downloads IMDb's [non-commercial
+datasets](https://developer.imdb.com/non-commercial-datasets/) (~600 MB, no
+account or API key needed) into `~/.cache/mtracker/imdb/`. They are reused
+afterwards; `--download` refreshes them.
+
+Items are matched by name and year. When several IMDb titles share both, the
+most popular one wins. Items already carrying an `imdb` id are never
+re-matched - if a match is wrong, just edit the id. Items that can't be matched
+are listed at the end, which doubles as a typo check for your database.
+
+In the TUI, genres appear dimmed in the tag list after your own tags; `ls`
+shows them with `--genres`, and `--imdb` adds the IMDb rating and directors.
+Tags that merely repeat a genre are hidden. Genres, directors and the title type (`movie`, `series`, ...)
+can be used as filter terms.
+
+Information courtesy of IMDb (https://www.imdb.com). Used with permission.
+
 ### Filtering
 When listing items (with `ls` or in the TUI), you can filter by combining
 search terms. All terms must match (AND logic). Prefix a term with `!` to
@@ -190,6 +222,9 @@ Term                | Meaning
 --------------------|--------------
 `<tag>`             | Items with this tag
 `<text>`            | Items whose name contains `<text>`
+`<genre>`           | Items with this IMDb genre (after `sync`)
+`<director>`        | Items whose director's name contains `<director>`
+`movie` / `series`  | Items of this IMDb title type
 `rated`             | Items that have a rating
 `unrated`           | Items without a rating
 `++`                | Items with a rating of at least 2
@@ -209,6 +244,9 @@ Command                                               | Action
 `mtracker ls horror comedy`                           | List items tagged both horror and comedy
 `mtracker ls horror 2022-2024`                        | List horror movies released between 2022 and 2024
 `mtracker ls rated '!horror'`                         | List all rated items that are not tagged horror
+`mtracker ls --genres '!horror'`                      | List non-horror items, showing IMDb genres
+`mtracker ls --imdb östlund`                          | List items by Ruben Östlund with IMDb rating
+`mtracker sync`                                       | Link items to IMDb and fetch genres, ratings, directors
 `mtracker add "Aliens (1986)" --tag=watchlist,horror` | Add new item with tags OR add tags to an existing item
 `mtracker rate "Aliens (1986)" 5`                     | Rate item a 5 (and remove from watchlist)
 `mtracker edit`                                       | Open the whole database in your editor

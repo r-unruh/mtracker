@@ -6,6 +6,7 @@ use ratatui::{
 };
 
 use super::app::{App, ConfirmAction, Mode};
+use crate::{imdb, media::format::display_tags};
 
 pub fn render(app: &mut App, f: &mut ratatui::Frame) {
     let chunks = Layout::vertical([
@@ -31,11 +32,13 @@ pub fn render(app: &mut App, f: &mut ratatui::Frame) {
 
     // List
     let max_rating = app.max_rating();
+    let metas = &app.metas;
     let items: Vec<ListItem> = app
         .filtered
         .iter()
         .map(|&i| {
             let item = app.repo.get_by_index(i);
+            let meta = imdb::meta_for(metas, item);
             let mut spans = vec![];
 
             // Rating column
@@ -71,16 +74,25 @@ pub fn render(app: &mut App, f: &mut ratatui::Frame) {
                     .push(Span::styled(format!(" ({year})"), Style::default().fg(Color::DarkGray)));
             }
 
-            // Tags (excluding watchlist)
-            let tags: Vec<&String> = item.tags.iter().filter(|t| *t != "watchlist").collect();
-            if !tags.is_empty() {
-                spans.push(Span::styled(
-                    format!(
-                        " [{}]",
-                        tags.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")
-                    ),
-                    Style::default().fg(Color::Cyan),
-                ));
+            // Tags (excluding watchlist and tags that repeat a genre), followed
+            // by IMDb genres in the same bracket but dimmed
+            let tags: Vec<&str> = display_tags(&item.tags, meta)
+                .into_iter()
+                .filter(|t| *t != "watchlist")
+                .map(String::as_str)
+                .collect();
+            let genres: Vec<&str> =
+                meta.map(|m| m.genres.iter().map(String::as_str).collect()).unwrap_or_default();
+            if !tags.is_empty() || !genres.is_empty() {
+                let cyan = Style::default().fg(Color::Cyan);
+                let dim = Style::default().fg(Color::DarkGray);
+                spans.push(Span::styled(" [", cyan));
+                spans.push(Span::styled(tags.join(", "), cyan));
+                if !tags.is_empty() && !genres.is_empty() {
+                    spans.push(Span::styled(", ", cyan));
+                }
+                spans.push(Span::styled(genres.join(", "), dim));
+                spans.push(Span::styled("]", cyan));
             }
 
             // Note

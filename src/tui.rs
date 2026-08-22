@@ -8,7 +8,7 @@ use crossterm::{
 };
 use ratatui::Terminal;
 
-use crate::media::repo::Repo;
+use crate::{imdb, media::repo::Repo};
 
 mod app;
 mod input;
@@ -19,7 +19,8 @@ use app::{App, Mode};
 pub fn run(matches: &ArgMatches) -> Result<()> {
     let path = PathBuf::from(matches.get_one::<String>("DB").unwrap());
     let repo = Repo::new(&path)?;
-    let mut app = App::new(repo);
+    let metas = imdb::load_meta()?;
+    let mut app = App::new(repo, metas);
 
     // Setup terminal
     terminal::enable_raw_mode()?;

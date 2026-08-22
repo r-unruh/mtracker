@@ -5,7 +5,7 @@ _mtracker() {
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    commands="list ls add a remove rm rate r unrate u edit help"
+    commands="list ls add a remove rm rate r unrate u edit tags sync help"
 
     if [[ $COMP_CWORD -eq 1 ]]; then
         COMPREPLY=( $(compgen -W "$commands" -- "$cur") )
@@ -45,6 +45,15 @@ _mtracker() {
             local tags IFS=$'\n'
             tags=$(mtracker tags)
             COMPREPLY=( $(compgen -W "$tags" -- "$cur") )
+            ;;
+        sync)
+            if [[ "$cur" == -* ]]; then
+                COMPREPLY=( $(compgen -W "--download --dry-run" -- "$cur") )
+            else
+                local movies IFS=$'\n'
+                movies=$(mtracker ls | sed -E "s/^\S+\s(WL:\s)?//")
+                COMPREPLY=( $(compgen -W "$movies" -- "$cur") )
+            fi
             ;;
     esac
 

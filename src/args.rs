@@ -70,6 +70,22 @@ pub fn note_bool() -> Arg {
         .long("note")
 }
 
+pub fn genres_bool() -> Arg {
+    Arg::new("GENRES")
+        .required(false)
+        .value_parser(clap::value_parser!(bool))
+        .num_args(0)
+        .long("genres")
+}
+
+pub fn imdb_bool() -> Arg {
+    Arg::new("IMDB")
+        .required(false)
+        .value_parser(clap::value_parser!(bool))
+        .num_args(0)
+        .long("imdb")
+}
+
 pub fn tags_bool() -> Arg {
     Arg::new("TAGS")
         .required(false)

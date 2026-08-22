@@ -16,6 +16,8 @@ _mtracker() {
         'unrate:Unrate a tracked movie'
         'u:Unrate a tracked movie'
         'edit:Edit item or whole database'
+        'tags:List all tags sorted by frequency'
+        'sync:Link items to IMDb and fetch genres, ratings and directors'
         'help:Print the usage help'
     )
 
@@ -57,6 +59,14 @@ _mtracker() {
                 (list|ls)
                     local tags=("${(@f)$(mtracker tags)}")
                     _arguments '*:tag:(${tags})'
+                    ;;
+                (sync)
+                    local -a movies
+                    movies=("${(@f)$(mtracker ls | sed -E "s/^\S+\s(WL:\s)?//")}")
+                    _arguments \
+                        '1:movie ID:(${movies})' \
+                        '--download[re-download the IMDb datasets]' \
+                        '--dry-run[show what would be linked without writing]'
                     ;;
             esac
             ;;
