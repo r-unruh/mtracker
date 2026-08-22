@@ -10,7 +10,7 @@ use tui_input::backend::crossterm::EventHandler;
 
 use crate::media::Media;
 
-use super::app::{App, ConfirmAction, Mode};
+use super::app::{App, ConfirmAction, Mode, Row};
 
 pub fn handle_key(
     app: &mut App,
@@ -80,32 +80,68 @@ fn handle_normal(
             app.mode = Mode::Filter;
             app.message = None;
         }
-        KeyCode::Char('w') => action_toggle_watchlist(app)?,
+        KeyCode::Char('w') => {
+            if let Some(ci) = app.selected_catalog_index() {
+                let idx = app.adopt(ci, &["watchlist"])?;
+                app.message = Some(format!("Added to watchlist: {}", label(app, idx)));
+            } else {
+                action_toggle_watchlist(app)?;
+            }
+        }
         KeyCode::Char('r') => {
+            if let Some(ci) = app.selected_catalog_index() {
+                let idx = app.adopt(ci, &[])?;
+                app.message = Some(format!("Added {}", label(app, idx)));
+            }
             if app.selected_item().is_some() {
                 app.mode = Mode::Rate(String::new());
                 app.message = None;
             }
         }
         KeyCode::Char('a') => {
-            action_add(app, terminal)?;
+            if let Some(ci) = app.selected_catalog_index() {
+                let idx = app.adopt(ci, &[])?;
+                app.message = Some(format!("Added {}", label(app, idx)));
+            } else {
+                action_add(app, terminal)?;
+            }
         }
         KeyCode::Char('d') => {
-            if let Some(idx) = app.selected_repo_index() {
+            if app.selected_catalog_index().is_some() {
+                app.message = Some(NOT_IN_DB.into());
+            } else if let Some(idx) = app.selected_repo_index() {
                 app.mode = Mode::Confirm(ConfirmAction::Delete(idx));
                 app.message = None;
             }
         }
-        KeyCode::Char('e') => action_edit(app, terminal)?,
+        KeyCode::Char('e') => {
+            if app.selected_catalog_index().is_some() {
+                app.message = Some(NOT_IN_DB.into());
+            } else {
+                action_edit(app, terminal)?;
+            }
+        }
         KeyCode::Char('o') => {
-            if let Some(idx) = app.selected_repo_index() {
-                app.mode = Mode::Open(idx);
+            if let Some(row) = app.selected_row() {
+                app.mode = Mode::Open(row);
                 app.message = None;
             }
         }
         _ => {}
     }
     Ok(())
+}
+
+const NOT_IN_DB: &str = "Not in your database yet - press a to add it";
+
+/// "Name (year)" of the item at a repo index
+fn label(app: &App, idx: usize) -> String {
+    let item = app.repo.get_by_index(idx);
+    crate::media::handle::Handle {
+        name: item.name.clone(),
+        year: item.year,
+    }
+    .to_string()
 }
 
 fn is_enter(key: &KeyEvent) -> bool {
@@ -200,7 +236,7 @@ fn handle_confirm(app: &mut App, key: KeyEvent) -> Result<()> {
 }
 
 fn handle_open(app: &mut App, key: KeyEvent) -> Result<()> {
-    let Mode::Open(idx) = app.mode else {
+    let Mode::Open(row) = app.mode else {
         return Ok(());
     };
     let site = match key.code {
@@ -215,7 +251,19 @@ fn handle_open(app: &mut App, key: KeyEvent) -> Result<()> {
     };
     app.mode = Mode::Normal;
 
-    let item = app.repo.get_by_index(idx);
+    // Catalog rows are not in the database; build a stand-in for the URL
+    let stand_in;
+    let item: &Media = match row {
+        Row::Item(idx) => app.repo.get_by_index(idx),
+        Row::Catalog(ci) => {
+            let m = &app.catalog[ci].meta;
+            stand_in = Media {
+                imdb: Some(m.tconst.clone()),
+                ..Media::new(m.primary_title.clone(), m.year)
+            };
+            &stand_in
+        }
+    };
     let url = site.url(item);
     let name = crate::media::handle::Handle {
         name: item.name.clone(),

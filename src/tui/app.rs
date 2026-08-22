@@ -1,12 +1,16 @@
-use std::collections::HashMap;
+use std::{
+    collections::{HashMap, HashSet},
+    sync::mpsc::Receiver,
+};
 
+use anyhow::Result;
 use ratatui::widgets::ListState;
 use tui_input::Input;
 
 use crate::{
-    imdb::{self, Meta},
-    list::matches_term,
-    media::{repo::Repo, Media},
+    imdb::{self, CatalogEntry, Meta},
+    list::{matches_catalog, matches_term},
+    media::{handle::Handle, repo::Repo, Media},
 };
 
 pub enum Mode {
@@ -14,18 +18,35 @@ pub enum Mode {
     Filter,
     Rate(String),
     Confirm(ConfirmAction),
-    /// Choose a website to open the item (repo index) in
-    Open(usize),
+    /// Choose a website to open the row in
+    Open(Row),
 }
 
 pub enum ConfirmAction {
     Delete(usize),
 }
 
+/// A list line: a db item or a catalog title not in the db
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Row {
+    Item(usize),
+    Catalog(usize),
+}
+
+/// Catalog rows shown per filter, at most
+pub const CATALOG_LIMIT: usize = 500;
+
 pub struct App {
     pub repo: Repo,
     pub metas: HashMap<String, Meta>,
-    pub filtered: Vec<usize>,
+    pub catalog: Vec<CatalogEntry>,
+    /// `None` once the background load has been received
+    catalog_rx: Option<Receiver<Result<Vec<CatalogEntry>>>>,
+    /// IMDb ids present in the database; their catalog rows are hidden
+    db_ids: HashSet<String>,
+    pub filtered: Vec<Row>,
+    /// Catalog matches, including those beyond the limit
+    pub catalog_total: usize,
     pub selected: usize,
     pub list_state: ListState,
     pub input: Input,
@@ -36,11 +57,19 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(repo: Repo, metas: HashMap<String, Meta>) -> Self {
+    pub fn new(
+        repo: Repo,
+        metas: HashMap<String, Meta>,
+        catalog_rx: Receiver<Result<Vec<CatalogEntry>>>,
+    ) -> Self {
         let mut app = App {
             repo,
             metas,
+            catalog: vec![],
+            catalog_rx: Some(catalog_rx),
+            db_ids: HashSet::new(),
             filtered: vec![],
+            catalog_total: 0,
             selected: 0,
             list_state: ListState::default(),
             input: Input::default(),
@@ -49,40 +78,54 @@ impl App {
             message: None,
             quit: false,
         };
+        app.refresh_db_ids();
         app.apply_filter();
         app
     }
 
-    pub fn apply_filter(&mut self) {
-        let terms: Vec<&str> = self.filter.split_whitespace().collect();
-        let max_rating = (0..self.repo.len())
-            .filter_map(|i| self.repo.get_by_index(i).rating)
-            .max()
-            .unwrap_or(0);
+    /// Pick up the catalog once the background load is done
+    pub fn poll_catalog(&mut self) -> Result<()> {
+        let Some(rx) = &self.catalog_rx else {
+            return Ok(());
+        };
+        if let Ok(result) = rx.try_recv() {
+            self.catalog_rx = None;
+            self.catalog = result?;
+            if !self.filter.is_empty() {
+                self.apply_filter();
+            }
+        }
+        Ok(())
+    }
 
-        self.filtered = (0..self.repo.len())
+    fn refresh_db_ids(&mut self) {
+        self.db_ids = (0..self.repo.len())
+            .filter_map(|i| self.repo.get_by_index(i).imdb.clone())
+            .collect();
+    }
+
+    pub fn apply_filter(&mut self) {
+        let filter = self.filter.clone();
+        let terms: Vec<(bool, &str)> = filter
+            .split_whitespace()
+            .map(|raw| match raw.strip_prefix('!') {
+                Some(t) if !t.is_empty() => (true, t),
+                _ => (false, raw),
+            })
+            .collect();
+        let max_rating = self.max_rating();
+
+        // Database items, sorted: watchlist first, then rating desc, then alphabetical
+        let mut items: Vec<usize> = (0..self.repo.len())
             .filter(|&i| {
                 let item = self.repo.get_by_index(i);
                 let meta = imdb::meta_for(&self.metas, item);
-                if terms.is_empty() {
-                    return true;
-                }
-                for raw_term in &terms {
-                    let (negated, term) = match raw_term.strip_prefix('!') {
-                        Some(t) if !t.is_empty() => (true, t),
-                        _ => (false, *raw_term),
-                    };
-                    let matched = matches_term(item, meta, term, max_rating);
-                    if matched == negated {
-                        return false;
-                    }
-                }
-                true
+                terms
+                    .iter()
+                    .all(|&(negated, term)| matches_term(item, meta, term, max_rating) != negated)
             })
             .collect();
-
-        // Sort: watchlist first, then rating desc, then alphabetical
-        self.filtered.sort_by(|&a, &b| {
+        items.sort_by(|&a, &b| {
             let ia = self.repo.get_by_index(a);
             let ib = self.repo.get_by_index(b);
             let wa = get_weight(ia);
@@ -93,6 +136,26 @@ impl App {
                 wb.cmp(&wa)
             }
         });
+        self.filtered = items.into_iter().map(Row::Item).collect();
+
+        // Catalog titles below, only while filtering; already sorted by popularity
+        self.catalog_total = 0;
+        if !terms.is_empty() {
+            for (i, entry) in self.catalog.iter().enumerate() {
+                if self.db_ids.contains(&entry.meta.tconst) {
+                    continue;
+                }
+                let hit = terms.iter().all(|&(negated, term)| {
+                    matches_catalog(&entry.key, &entry.meta, term) != negated
+                });
+                if hit {
+                    self.catalog_total += 1;
+                    if self.catalog_total <= CATALOG_LIMIT {
+                        self.filtered.push(Row::Catalog(i));
+                    }
+                }
+            }
+        }
 
         // Clamp selection
         if self.filtered.is_empty() {
@@ -106,13 +169,35 @@ impl App {
         }
     }
 
+    pub fn item_count(&self) -> usize {
+        self.filtered.iter().filter(|r| matches!(r, Row::Item(_))).count()
+    }
+
+    pub fn catalog_shown(&self) -> usize {
+        self.filtered.len() - self.item_count()
+    }
+
     pub fn select(&mut self, idx: usize) {
         self.selected = idx;
         self.list_state.select(Some(idx));
     }
 
-    pub fn selected_repo_index(&self) -> Option<usize> {
+    pub fn selected_row(&self) -> Option<Row> {
         self.filtered.get(self.selected).copied()
+    }
+
+    pub fn selected_repo_index(&self) -> Option<usize> {
+        match self.selected_row() {
+            Some(Row::Item(i)) => Some(i),
+            _ => None,
+        }
+    }
+
+    pub fn selected_catalog_index(&self) -> Option<usize> {
+        match self.selected_row() {
+            Some(Row::Catalog(i)) => Some(i),
+            _ => None,
+        }
     }
 
     pub fn selected_item(&self) -> Option<&Media> {
@@ -124,6 +209,41 @@ impl App {
             .filter_map(|i| self.repo.get_by_index(i).rating)
             .max()
             .unwrap_or(0)
+    }
+
+    /// Add a catalog title to the db (or link a same-named unlinked item); selects its row
+    pub fn adopt(&mut self, catalog_idx: usize, tags: &[&str]) -> Result<usize> {
+        let meta = self.catalog[catalog_idx].meta.clone();
+        let handle = Handle {
+            name: meta.primary_title.clone(),
+            year: meta.year,
+        };
+        let idx = match (0..self.repo.len())
+            .find(|&i| self.repo.get_by_index(i).matches_handle(&handle))
+        {
+            Some(i) => i,
+            None => {
+                self.repo.add(Media::from_handle(&handle))?;
+                self.repo.len() - 1
+            }
+        };
+        let item = self.repo.get_by_index_mut(idx);
+        item.imdb = Some(meta.tconst.clone());
+        for tag in tags {
+            item.add_tag(tag);
+        }
+        self.repo.write()?;
+
+        // Make genres etc. available right away, also to `ls`
+        self.metas.insert(meta.tconst.clone(), meta);
+        imdb::meta::save(&imdb::meta_path()?, &self.metas)?;
+
+        self.refresh_db_ids();
+        self.apply_filter();
+        if let Some(pos) = self.filtered.iter().position(|r| *r == Row::Item(idx)) {
+            self.select(pos);
+        }
+        Ok(idx)
     }
 }
 

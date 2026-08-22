@@ -1,4 +1,4 @@
-//! Downloading IMDb datasets into the cache directory.
+//! Dataset downloads.
 
 use std::{
     fs,
@@ -11,10 +11,7 @@ use anyhow::{anyhow, Context, Result};
 
 pub const BASE_URL: &str = "https://datasets.imdbws.com/";
 
-/// Return the local path of `<name>.tsv.gz`, downloading it first if it is
-/// missing (or if `force` is set). Downloads go to a `.part` file that is only
-/// renamed into place on success, so an interrupted download never leaves a
-/// corrupt dataset behind.
+/// Path of the cached `<name>.tsv.gz`, downloading it if missing or `force`
 pub fn ensure_dataset(dir: &Path, name: &str, force: bool) -> Result<PathBuf> {
     let file_name = format!("{name}.tsv.gz");
     let path = dir.join(&file_name);

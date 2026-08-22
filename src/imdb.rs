@@ -1,8 +1,4 @@
-//! Access to IMDb's non-commercial datasets (https://datasets.imdbws.com/).
-//!
-//! `sync` downloads the datasets into the cache directory, links db items to
-//! IMDb title ids and stores the derived metadata in a small cache file that
-//! `ls` and the TUI read on startup.
+//! IMDb datasets (https://datasets.imdbws.com/): download, match, cache.
 
 use std::{collections::HashMap, fmt, path::PathBuf, str::FromStr};
 
@@ -32,6 +28,40 @@ pub fn meta_path() -> Result<PathBuf> {
     Ok(cache_dir()?.join(meta::FILE_NAME))
 }
 
+pub const CATALOG_FILE: &str = "catalog.tsv";
+
+pub fn catalog_path() -> Result<PathBuf> {
+    Ok(cache_dir()?.join(CATALOG_FILE))
+}
+
+/// Catalog title with a precomputed lowercase search key
+#[derive(Debug, Clone, PartialEq)]
+pub struct CatalogEntry {
+    pub meta: Meta,
+    /// "primary title | original title | director, director", lowercased
+    pub key: String,
+}
+
+impl CatalogEntry {
+    pub fn new(meta: Meta) -> Self {
+        let mut key = meta.primary_title.to_lowercase();
+        if meta.original_title != meta.primary_title {
+            key.push_str(" | ");
+            key.push_str(&meta.original_title.to_lowercase());
+        }
+        if !meta.directors.is_empty() {
+            key.push_str(" | ");
+            key.push_str(&meta.directors.join(", ").to_lowercase());
+        }
+        Self { meta, key }
+    }
+}
+
+/// Load the search catalog written by `sync`; empty if there is none.
+pub fn load_catalog() -> Result<Vec<CatalogEntry>> {
+    Ok(meta::load_vec(&catalog_path()?)?.into_iter().map(CatalogEntry::new).collect())
+}
+
 /// Load the metadata cache; empty if nothing has been synced yet.
 pub fn load_meta() -> Result<HashMap<String, Meta>> {
     meta::load(&meta_path()?)
@@ -55,8 +85,7 @@ pub enum TitleType {
 }
 
 impl TitleType {
-    /// Parse IMDb's `titleType` column. Returns `None` for types we ignore
-    /// (episodes, video games, ...).
+    /// `None` for ignored types (episodes, video games, ...)
     pub fn from_imdb(s: &str) -> Option<Self> {
         match s {
             "movie" => Some(Self::Movie),

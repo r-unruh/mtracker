@@ -1,4 +1,4 @@
-//! The metadata cache: one row per linked IMDb title, read by `ls` and the TUI.
+//! Metadata cache: one row per linked title.
 
 use std::{collections::HashMap, fs, path::Path};
 
@@ -11,15 +11,14 @@ const HEADER: &str =
     "tconst\ttype\tprimary_title\toriginal_title\tyear\truntime\tgenres\trating\tvotes\tdirectors";
 const LIST_SEP: char = '|';
 
-/// Load the cache. A missing file is not an error: it simply means nothing has
-/// been synced yet.
+/// Missing file = nothing synced yet, not an error
 pub fn load(path: &Path) -> Result<HashMap<String, Meta>> {
     let content = match fs::read_to_string(path) {
         Ok(c) => c,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(HashMap::new()),
         Err(e) => return Err(e).with_context(|| format!("failed to read {}", path.display())),
     };
-    parse(&content).with_context(|| {
+    load_map(&content).with_context(|| {
         format!(
             "metadata cache is corrupt: {}\nDelete it and run 'mtracker sync' again.",
             path.display()
@@ -28,18 +27,48 @@ pub fn load(path: &Path) -> Result<HashMap<String, Meta>> {
 }
 
 pub fn save(path: &Path, metas: &HashMap<String, Meta>) -> Result<()> {
+    let mut rows: Vec<&Meta> = metas.values().collect();
+    rows.sort_by(|a, b| a.tconst.cmp(&b.tconst));
+    save_rows(path, &rows)
+}
+
+/// Like [`load`], but keeps the file order (the catalog is sorted by popularity)
+pub fn load_vec(path: &Path) -> Result<Vec<Meta>> {
+    let content = match fs::read_to_string(path) {
+        Ok(c) => c,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(vec![]),
+        Err(e) => return Err(e).with_context(|| format!("failed to read {}", path.display())),
+    };
+    parse(&content).with_context(|| {
+        format!(
+            "catalog is corrupt: {}\nDelete it and run 'mtracker sync' again.",
+            path.display()
+        )
+    })
+}
+
+pub fn save_vec(path: &Path, metas: &[Meta]) -> Result<()> {
+    let rows: Vec<&Meta> = metas.iter().collect();
+    save_rows(path, &rows)
+}
+
+fn save_rows(path: &Path, rows: &[&Meta]) -> Result<()> {
     if let Some(dir) = path.parent() {
         fs::create_dir_all(dir)?;
     }
-    fs::write(path, serialize(metas)).with_context(|| format!("failed to write {}", path.display()))
+    fs::write(path, serialize(rows)).with_context(|| format!("failed to write {}", path.display()))
 }
 
-fn parse(content: &str) -> Result<HashMap<String, Meta>> {
+fn load_map(content: &str) -> Result<HashMap<String, Meta>> {
+    Ok(parse(content)?.into_iter().map(|m| (m.tconst.clone(), m)).collect())
+}
+
+fn parse(content: &str) -> Result<Vec<Meta>> {
     let mut lines = content.lines();
     if lines.next() != Some(HEADER) {
         return Err(anyhow!("unexpected header"));
     }
-    let mut map = HashMap::new();
+    let mut rows = Vec::new();
     for (i, line) in lines.enumerate() {
         let f: Vec<&str> = line.split('\t').collect();
         if f.len() != 10 {
@@ -67,15 +96,12 @@ fn parse(content: &str) -> Result<HashMap<String, Meta>> {
             votes: f[8].parse()?,
             directors: list(f[9]),
         };
-        map.insert(meta.tconst.clone(), meta);
+        rows.push(meta);
     }
-    Ok(map)
+    Ok(rows)
 }
 
-fn serialize(metas: &HashMap<String, Meta>) -> String {
-    let mut rows: Vec<&Meta> = metas.values().collect();
-    rows.sort_by(|a, b| a.tconst.cmp(&b.tconst));
-
+fn serialize(rows: &[&Meta]) -> String {
     let opt = |v: Option<u16>| v.map(|n| n.to_string()).unwrap_or_default();
     let mut out = String::from(HEADER);
     for m in rows {
@@ -146,6 +172,35 @@ mod tests {
         fs::write(&path, "garbage").unwrap();
         let err = load(&path).unwrap_err().to_string();
         assert!(err.contains("corrupt"));
+        fs::remove_file(&path).ok();
+    }
+
+    #[test]
+    fn vec_roundtrip_keeps_order() {
+        let a = Meta {
+            tconst: "tt2".into(),
+            title_type: TitleType::Movie,
+            primary_title: "B".into(),
+            original_title: "B".into(),
+            year: None,
+            runtime: None,
+            genres: vec![],
+            rating: None,
+            votes: 500,
+            directors: vec![],
+        };
+        let b = Meta {
+            tconst: "tt1".into(),
+            votes: 100,
+            ..a.clone()
+        };
+        let mut path = std::env::temp_dir();
+        path.push("mtracker_test_meta/catalog.tsv");
+        fs::remove_file(&path).ok();
+
+        assert!(load_vec(&path).unwrap().is_empty());
+        save_vec(&path, &[a.clone(), b.clone()]).unwrap();
+        assert_eq!(load_vec(&path).unwrap(), vec![a, b]);
         fs::remove_file(&path).ok();
     }
 }

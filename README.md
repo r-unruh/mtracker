@@ -98,6 +98,14 @@ Key                    | Action
 `w`                    | Toggle watchlist
 `d`                    | Delete selected item (with confirmation)
 `o`                    | Open selected item in the browser (`i` IMDb, `t` TMDB, `l` Letterboxd)
+
+### Searching the catalog
+After `mtracker sync`, filtering doesn't only search your own items: matching
+titles from IMDb's catalog of popular movies and series are listed below them,
+dimmed. Type `östlund` and you get your rated Östlund films on top and the rest
+of his filmography underneath. Press `a` on such a title to add it to your
+database, `w` to put it on the watchlist or `r` to add and rate it - the
+entry is created with the correct name, year and IMDb link, no typing needed.
 `Esc`                  | Clear filter, or quit
 `q`                    | Quit
 
@@ -201,6 +209,11 @@ On first run it downloads IMDb's [non-commercial
 datasets](https://developer.imdb.com/non-commercial-datasets/) (~600 MB, no
 account or API key needed) into `~/.cache/mtracker/imdb/`. They are reused
 afterwards; `--download` refreshes them.
+
+Sync also builds the search catalog used by the TUI
+(`~/.cache/mtracker/catalog.tsv`): every movie and series with at least 1000
+IMDb votes, about 70,000 titles. `--min-votes` changes the cutoff. Delete the
+file and the TUI searches your own items only, as before.
 
 Items are matched by name and year. When several IMDb titles share both, the
 most popular one wins. Items already carrying an `imdb` id are never

@@ -1,4 +1,4 @@
-//! Streaming reader for IMDb's gzipped TSV datasets.
+//! Streaming reader for the gzipped TSV datasets.
 
 use std::{
     fs::File,
@@ -9,19 +9,13 @@ use std::{
 use anyhow::{anyhow, Context, Result};
 use flate2::read::MultiGzDecoder;
 
-/// Split a data line into fields, mapping IMDb's `\N` (null) to the empty
-/// string. Returns `None` if the number of columns is not `expected`.
+/// Split a line into fields (`\N` becomes ""); `None` on a wrong column count
 pub fn fields(line: &str, expected: usize) -> Option<Vec<&str>> {
     let fields: Vec<&str> = line.split('\t').map(|v| if v == "\\N" { "" } else { v }).collect();
     (fields.len() == expected).then_some(fields)
 }
 
-/// Stream every data line of a gzipped TSV file (trailing newline removed).
-/// Nothing is kept in memory beyond the current line; callers can cheaply
-/// inspect the first column(s) before paying for a full split with [`fields`].
-///
-/// The header row is verified against `expected_header` so a schema change on
-/// IMDb's side fails loudly instead of mis-parsing.
+/// Stream the data lines of a gzipped TSV file; fails loudly if the header changed
 pub fn for_each_line(
     path: &Path,
     expected_header: &[&str],

@@ -1,11 +1,10 @@
-//! Matching db items to IMDb titles by name and year.
+//! Match items to IMDb titles by name and year.
 
 use unicode_normalization::UnicodeNormalization;
 
 use super::Meta;
 
-/// Normalize a title for comparison: strip diacritics, lowercase, and collapse
-/// every run of non-alphanumeric characters into a single space.
+/// Lowercase, no diacritics, non-alphanumerics collapsed to single spaces
 pub fn normalize(title: &str) -> String {
     let mut out = String::with_capacity(title.len());
     let mut pending_space = false;
@@ -56,8 +55,7 @@ fn pick<'a>(cands: impl Iterator<Item = &'a Meta>) -> Option<&'a Meta> {
     cands.max_by_key(|m| (m.votes, std::cmp::Reverse(m.title_type.preference())))
 }
 
-/// Select the IMDb title for an item with the given year among candidates that
-/// all share the item's normalized name.
+/// Pick the best candidate (all share the item's normalized name)
 pub fn select<'a>(year: Option<u16>, cands: &[&'a Meta]) -> Option<(&'a Meta, MatchKind)> {
     let Some(year) = year else {
         return pick(cands.iter().copied()).map(|m| (m, MatchKind::NoYear));

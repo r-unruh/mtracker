@@ -1,5 +1,4 @@
-//! Persistent cache of IMDb person ids to names, so `name.basics` only has to be scanned when an
-//! unknown person shows up.
+//! Person id -> name cache, so name.basics is only scanned for unknown people.
 
 use std::{collections::HashMap, fs, path::Path};
 

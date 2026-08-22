@@ -20,7 +20,13 @@ pub fn run(matches: &ArgMatches) -> Result<()> {
     let path = PathBuf::from(matches.get_one::<String>("DB").unwrap());
     let repo = Repo::new(&path)?;
     let metas = imdb::load_meta()?;
-    let mut app = App::new(repo, metas);
+
+    // The search catalog is large; load it while the TUI is already up
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        tx.send(imdb::load_catalog()).ok();
+    });
+    let mut app = App::new(repo, metas, rx);
 
     // Setup terminal
     terminal::enable_raw_mode()?;
@@ -54,6 +60,7 @@ fn main_loop(
     terminal: &mut Terminal<ratatui::backend::CrosstermBackend<io::Stdout>>,
 ) -> Result<()> {
     loop {
+        app.poll_catalog()?;
         terminal.draw(|f| render::render(app, f))?;
 
         if event::poll(Duration::from_millis(250))? {

@@ -96,8 +96,26 @@ pub fn matches_term(
     item.name.to_lowercase().contains(&term.to_lowercase())
 }
 
+/// Filter term vs. catalog title; rating terms and tags never match (they're about your items)
+pub fn matches_catalog(key: &str, meta: &imdb::Meta, term: &str) -> bool {
+    if let Some(range) = try_parse_year_range(term) {
+        return matches!(meta.year, Some(y) if y >= range.0 && y <= range.1);
+    }
+    if term == "rated" || term == "unrated" || is_rating_term(term) {
+        return false;
+    }
+    if meta.has_genre(term) || term.eq_ignore_ascii_case(meta.title_type.as_str()) {
+        return true;
+    }
+    key.contains(&term.to_lowercase())
+}
+
+fn is_rating_term(term: &str) -> bool {
+    !term.is_empty() && term.chars().all(|c| c == '+' || c == '-')
+}
+
 fn try_match_rating(term: &str, item: &media::Media, max_rating: u8) -> Option<bool> {
-    if term.is_empty() || !term.chars().all(|c| c == '+' || c == '-') {
+    if !is_rating_term(term) {
         return None;
     }
     let pluses = term.chars().filter(|&c| c == '+').count() as u8;
@@ -197,6 +215,39 @@ mod tests {
         assert!(!matches_term(&item, None, "horror", 0));
         assert!(matches_term(&item, None, "classic", 0));
         assert!(matches_term(&item, None, "ali", 0));
+    }
+
+    #[test]
+    fn matches_catalog_terms() {
+        let entry = imdb::CatalogEntry::new(Meta {
+            tconst: "tt7322224".into(),
+            title_type: TitleType::Movie,
+            primary_title: "Triangle of Sadness".into(),
+            original_title: "Triangle of Sadness".into(),
+            year: Some(2022),
+            runtime: Some(147),
+            genres: vec!["comedy".into(), "drama".into()],
+            rating: Some(72),
+            votes: 219_437,
+            directors: vec!["Ruben Östlund".into()],
+        });
+        let m = |term: &str| matches_catalog(&entry.key, &entry.meta, term);
+
+        assert!(m("östlund"));
+        assert!(m("Östlund"));
+        assert!(m("triangle"));
+        assert!(m("comedy"));
+        assert!(m("movie"));
+        assert!(m("2022"));
+        assert!(m("2020-"));
+        assert!(!m("2023"));
+        assert!(!m("horror"));
+        assert!(!m("series"));
+        // Rating terms describe the user's own items only
+        assert!(!m("rated"));
+        assert!(!m("unrated"));
+        assert!(!m("++"));
+        assert!(!m("--"));
     }
 
     #[test]

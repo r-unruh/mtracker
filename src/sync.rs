@@ -68,12 +68,20 @@ match, edit the id by hand.",
                 .action(ArgAction::SetTrue)
                 .help("Show what would be linked without writing anything"),
         )
+        .arg(
+            Arg::new("MIN_VOTES")
+                .long("min-votes")
+                .value_parser(clap::value_parser!(u32))
+                .default_value("1000")
+                .help("Titles with at least this many IMDb votes go into the TUI search catalog"),
+        )
 }
 
 pub fn handle(matches: &ArgMatches) -> Result<()> {
     let mut repo = arg_util::repo_from_matches(matches)?;
     let force_download = matches.get_flag("DOWNLOAD");
     let dry_run = matches.get_flag("DRY_RUN");
+    let min_votes = *matches.get_one::<u32>("MIN_VOTES").unwrap();
 
     // Which items to sync
     let targets: Vec<usize> = match arg_util::handle_from_matches(matches)? {
@@ -98,11 +106,6 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
             None => wanted.entry(matcher::normalize(&item.name)).or_default().push(i),
         }
     }
-    if wanted.is_empty() && known.is_empty() {
-        println!("Nothing to sync.");
-        return Ok(());
-    }
-
     // Datasets
     let cache_dir = imdb::cache_dir()?;
     let data_dir = cache_dir.join("imdb");
@@ -111,21 +114,40 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
     let crew = download::ensure_dataset(&data_dir, "title.crew", force_download)?;
     let names = download::ensure_dataset(&data_dir, "name.basics", force_download)?;
 
-    // Pass 1: titles. Keep candidates for wanted names and rows for known ids.
+    // Pass 1: ratings. Popular titles form the search catalog.
+    let started = Instant::now();
+    eprint!("Scanning ratings...");
+    let mut popular: HashMap<String, (Option<u8>, u32)> = HashMap::new();
+    let mut skipped = 0;
+    dataset::for_each_line(&ratings, &RATINGS_HEADER, |line| {
+        let Some(f) = dataset::fields(line, RATINGS_HEADER.len()) else {
+            skipped += 1;
+            return Ok(());
+        };
+        let votes: u32 = f[2].parse().unwrap_or(0);
+        if votes >= min_votes {
+            popular.insert(f[0].to_string(), (parse_rating(f[1]), votes));
+        }
+        Ok(())
+    })?;
+    warn_skipped(&ratings, skipped);
+    eprintln!(" {:.1}s", started.elapsed().as_secs_f32());
+
+    // Pass 2: titles. Keep popular titles, candidates and known ids.
     let started = Instant::now();
     eprint!("Scanning titles...");
     let mut metas: HashMap<String, Meta> = HashMap::new();
     let mut cand_index: HashMap<String, Vec<String>> = HashMap::new();
     let mut skipped = 0;
     dataset::for_each_line(&basics, &BASICS_HEADER, |line| {
-        // Cheap check of the first two columns before splitting the whole line:
-        // this drops episodes and other irrelevant rows (most of the file)
+        // Check type before splitting the line: drops most rows (episodes) cheaply
         let mut head = line.splitn(3, '\t');
         let (Some(tconst), Some(title_type)) = (head.next(), head.next()) else {
             skipped += 1;
             return Ok(());
         };
         let is_known = known.contains(tconst);
+        let pop = popular.get(tconst).copied();
         let Some(title_type) = TitleType::from_imdb(title_type) else {
             return Ok(());
         };
@@ -150,9 +172,10 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
                 }
             }
         }
-        if !is_known && keys.is_empty() {
+        if !is_known && keys.is_empty() && pop.is_none() {
             return Ok(());
         }
+        let (rating, votes) = pop.unwrap_or((None, 0));
 
         for key in keys {
             cand_index.entry(key).or_default().push(tconst.to_string());
@@ -167,8 +190,8 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
                 year: f[5].parse().ok(),
                 runtime: f[7].parse().ok(),
                 genres: f[8].split(',').filter(|g| !g.is_empty()).map(str::to_lowercase).collect(),
-                rating: None,
-                votes: 0,
+                rating,
+                votes,
                 directors: vec![],
             },
         );
@@ -177,27 +200,29 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
     warn_skipped(&basics, skipped);
     eprintln!(" {:.1}s", started.elapsed().as_secs_f32());
 
-    // Pass 2: ratings and vote counts
-    let started = Instant::now();
-    eprint!("Scanning ratings...");
-    let mut skipped = 0;
-    dataset::for_each_line(&ratings, &RATINGS_HEADER, |line| {
-        let Some((tconst, _)) = line.split_once('\t') else {
-            skipped += 1;
-            return Ok(());
-        };
-        if let Some(m) = metas.get_mut(tconst) {
-            let Some(f) = dataset::fields(line, RATINGS_HEADER.len()) else {
+    // Pass 3: ratings for the candidates and known ids that are not popular
+    if metas.values().any(|m| !popular.contains_key(&m.tconst)) {
+        let mut skipped = 0;
+        dataset::for_each_line(&ratings, &RATINGS_HEADER, |line| {
+            let Some((tconst, _)) = line.split_once('\t') else {
                 skipped += 1;
                 return Ok(());
             };
-            m.rating = parse_rating(f[1]);
-            m.votes = f[2].parse().unwrap_or(0);
-        }
-        Ok(())
-    })?;
-    warn_skipped(&ratings, skipped);
-    eprintln!(" {:.1}s", started.elapsed().as_secs_f32());
+            if popular.contains_key(tconst) {
+                return Ok(());
+            }
+            if let Some(m) = metas.get_mut(tconst) {
+                let Some(f) = dataset::fields(line, RATINGS_HEADER.len()) else {
+                    skipped += 1;
+                    return Ok(());
+                };
+                m.rating = parse_rating(f[1]);
+                m.votes = f[2].parse().unwrap_or(0);
+            }
+            Ok(())
+        })?;
+        warn_skipped(&ratings, skipped);
+    }
 
     // Resolve matches, in database order
     let mut order: Vec<(usize, &String)> = wanted
@@ -241,7 +266,7 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
         }
     }
 
-    // Pass 3 + 4: directors of every linked title, then their names
+    // Pass 4 + 5: directors of every kept title, then their names
     let started = Instant::now();
     eprint!("Scanning crew...");
     let mut director_ids: HashMap<String, Vec<String>> = HashMap::new();
@@ -252,7 +277,7 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
             skipped += 1;
             return Ok(());
         };
-        if linked.contains(tconst) {
+        if metas.contains_key(tconst) {
             let Some(f) = dataset::fields(line, CREW_HEADER.len()) else {
                 skipped += 1;
                 return Ok(());
@@ -318,6 +343,11 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
         }
         meta::save(&meta_path, &all)?;
 
+        let mut catalog: Vec<Meta> =
+            metas.values().filter(|m| popular.contains_key(&m.tconst)).cloned().collect();
+        catalog.sort_by(|a, b| b.votes.cmp(&a.votes).then_with(|| a.tconst.cmp(&b.tconst)));
+        meta::save_vec(&imdb::catalog_path()?, &catalog)?;
+
         for (i, tconst) in &matched {
             repo.get_by_index_mut(*i).imdb = Some(tconst.clone());
         }
@@ -338,6 +368,10 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
         matched.len(),
         known.len(),
         misses.len()
+    );
+    println!(
+        "Catalog: {} titles with at least {min_votes} votes",
+        metas.values().filter(|m| popular.contains_key(&m.tconst)).count()
     );
     println!("{}", imdb::ATTRIBUTION.dimmed());
     Ok(())
