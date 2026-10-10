@@ -33,7 +33,19 @@ fn handle_normal(
 ) -> Result<()> {
     app.message = None;
     let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
+
+    // The second key of zt, zz and zb; any other key means what it always does
+    if std::mem::take(&mut app.scroll_pending) && !app.filtered.is_empty() {
+        if let KeyCode::Char(place @ ('t' | 'z' | 'b')) = key.code {
+            // Title bar, footer and the two borders of the list are not rows
+            let height = (terminal.size()?.height as usize).saturating_sub(4);
+            *app.list_state.offset_mut() = scroll_offset(app.selected, height, place);
+            return Ok(());
+        }
+    }
+
     match key.code {
+        KeyCode::Char('z') => app.scroll_pending = true,
         KeyCode::Char('d') if ctrl => {
             if !app.filtered.is_empty() {
                 let half = terminal.size()?.height as usize / 2;
@@ -75,7 +87,8 @@ fn handle_normal(
             }
         }
         KeyCode::Char('/') => {
-            app.input = tui_input::Input::new(app.filter.clone());
+            app.input = tui_input::Input::default();
+            app.set_filter(String::new());
             app.mode = Mode::Filter;
             app.message = None;
         }
@@ -147,6 +160,16 @@ fn label(app: &App, idx: usize) -> String {
 fn is_enter(key: &KeyEvent) -> bool {
     key.code == KeyCode::Enter
         || (key.code == KeyCode::Char('j') && key.modifiers.contains(KeyModifiers::CONTROL))
+}
+
+/// The first row to show so that the selected one is at the top (`t`), in the
+/// middle (`z`) or at the bottom (`b`) of a list `height` rows high
+fn scroll_offset(selected: usize, height: usize, place: char) -> usize {
+    match place {
+        't' => selected,
+        'z' => selected.saturating_sub(height.saturating_sub(1) / 2),
+        _ => selected.saturating_sub(height.saturating_sub(1)),
+    }
 }
 
 fn handle_filter(app: &mut App, key: KeyEvent) -> Result<()> {
@@ -525,6 +548,18 @@ fn action_edit(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn scroll_offsets() {
+        // 21 rows: ten above and ten below the middle
+        assert_eq!(scroll_offset(50, 21, 't'), 50);
+        assert_eq!(scroll_offset(50, 21, 'z'), 40);
+        assert_eq!(scroll_offset(50, 21, 'b'), 30);
+        // Nothing above the first row to scroll to
+        assert_eq!(scroll_offset(3, 21, 'z'), 0);
+        assert_eq!(scroll_offset(3, 21, 'b'), 0);
+        assert_eq!(scroll_offset(3, 0, 'z'), 3);
+    }
 
     #[test]
     fn urls() {

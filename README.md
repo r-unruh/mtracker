@@ -91,6 +91,7 @@ Key                    | Action
 `j` / `k`              | Move down / up
 `g` / `G`              | Jump to first / last item
 `Ctrl+d` / `Ctrl+u`    | Half-page down / up
+`zt` / `zz` / `zb`     | Scroll the selected item to the top / middle / bottom
 `/`                    | Filter items
 `a`                    | Add new item (opens `$EDITOR`)
 `e`                    | Edit selected item (opens `$EDITOR`)

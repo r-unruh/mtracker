@@ -53,6 +53,8 @@ pub struct App {
     pub filter: String,
     pub mode: Mode,
     pub message: Option<String>,
+    /// `z` was pressed and waits for the key that says where to scroll to
+    pub scroll_pending: bool,
     pub quit: bool,
 }
 
@@ -76,6 +78,7 @@ impl App {
             filter: String::new(),
             mode: Mode::Normal,
             message: None,
+            scroll_pending: false,
             quit: false,
         };
         app.refresh_db_ids();
